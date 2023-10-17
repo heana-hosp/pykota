@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: ISO-8859-15 -*-
 
 # PyKota Invoice generator
@@ -28,7 +28,7 @@ import sys
 import os
 import pwd
 import time
-import cStringIO
+from io import StringIO
 
 try :
     from reportlab.pdfgen import canvas
@@ -161,7 +161,7 @@ class PKInvoice(PyKotaTool) :
         self.canvas.saveState()
         self.canvas.setFont("Helvetica-Bold", size)
         self.canvas.setFillColorRGB(0, 0, 0)
-        self.canvas.drawRightString(xcenter, self.ypos, "%s :" % self.userCharsetToUTF8(label))
+        self.canvas.drawRightString(xcenter, self.ypos, f"{self.userCharsetToUTF8(label)} :")
         self.canvas.setFont("Courier-Bold", size)
         self.canvas.setFillColorRGB(0, 0, 1)
         self.canvas.drawString(xcenter + 0.5*cm, self.ypos, self.userCharsetToUTF8(value))
@@ -176,28 +176,28 @@ class PKInvoice(PyKotaTool) :
             vatamount = amount - ht
             self.canvas.doForm("background")
             self.ypos = self.yorigine - (cm + 20)
-            self.printVar(_("Invoice"), "#%s" % invoicenumber, 22)
-            self.printVar(_("Username"), name, 22)
+            self.printVar("Invoice", f"#{invoicenumber}", 22)
+            self.printVar("Username", name, 22)
             self.ypos -= 20
-            self.printVar(_("Edited on"), time.strftime("%c", time.localtime()), 14)
+            self.printVar("Edited on", time.strftime("%c", time.localtime()), 14)
                 
             self.ypos -= 20
-            self.printVar(_("Number of jobs printed"), str(values["nbjobs"]), 18)
-            self.printVar(_("Number of pages printed"), str(values["nbpages"]), 18)
+            self.printVar("Number of jobs printed", str(values["nbjobs"]), 18)
+            self.printVar("Number of pages printed", str(values["nbpages"]), 18)
             self.ypos -= 20
-            self.printVar(_("Amount due"), "%.3f %s" % (amount, unit), 18)
+            self.printVar("Amount due", "%.3f %s" % (amount, unit), 18)
             if vat :
                 self.ypos += 8
-                self.printVar("%s (%.2f%%)" % (_("Included VAT"), vat), "%.3f %s" % (vatamount, unit), 14)
+                self.printVar(f"{'Included VAT'} ({vat:.2f}%)", f"{vatamount:.3f} {unit}", 14)
             self.canvas.showPage()
             return 1
         return 0    
         
     def initPDF(self, logo) :
         """Initializes the PDF document."""
-        self.pdfDocument = cStringIO.StringIO()        
-        self.canvas = c = canvas.Canvas(self.pdfDocument, \
-                                        pagesize=self.pagesize, \
+        self.pdfDocument = StringIO()
+        self.canvas = c = canvas.Canvas(self.pdfDocument,
+                                        pagesize=self.pagesize,
                                         pageCompression=1)
         
         c.setAuthor(self.originalUserName)
@@ -214,22 +214,22 @@ class PKInvoice(PyKotaTool) :
             try :    
                 imglogo = PIL.Image.open(logo)
             except IOError :    
-                self.printInfo("Unable to open image %s" % logo, "warn")
+                self.printInfo(f"Unable to open image {logo}", "warn")
             else :
                 (width, height) = imglogo.size
                 multi = float(width) / (8 * cm) 
                 width = float(width) / multi
                 height = float(height) / multi
                 self.ypos -= height
-                c.drawImage(logo, xcenter - (width / 2.0), \
-                                  self.ypos, \
-                                  width, height)
+                c.drawImage(logo, xcenter - (width / 2.0),
+                            self.ypos,
+                            width, height)
         
         self.ypos -= (cm + 20)
         self.canvas.setFont("Helvetica-Bold", 14)
         self.canvas.setFillColorRGB(0, 0, 0)
-        msg = _("Here's the invoice for your printouts")
-        self.canvas.drawCentredString(xcenter, self.ypos, "%s :" % self.userCharsetToUTF8(msg))
+        msg = "Here's the invoice for your printouts"
+        self.canvas.drawCentredString(xcenter, self.ypos, f"{self.userCharsetToUTF8(msg)} :")
         
         self.yorigine = self.ypos
         self.canvas.restoreState()
@@ -252,7 +252,7 @@ class PKInvoice(PyKotaTool) :
             percent = Percent(self)
             percent.setSize(len(peruser))
             if outfname != "-" :
-                percent.display("%s...\n" % _("Generating invoices"))
+                percent.display(f"{'Generating invoices'}...\n")
                 
             self.initPDF(logo)
             number = firstnumber
@@ -270,31 +270,32 @@ class PKInvoice(PyKotaTool) :
     def main(self, arguments, options) :
         """Generate invoices."""
         if not hasRL :
-            raise PyKotaToolError, "The ReportLab module is missing. Download it from http://www.reportlab.org"
+            raise PyKotaToolError("The ReportLab module is missing. Download it from http://www.reportlab.org")
         if not hasPIL :
-            raise PyKotaToolError, "The Python Imaging Library is missing. Download it from http://www.pythonware.com/downloads"
+            raise PyKotaToolError("The Python Imaging Library is missing. Download it from http://www.pythonware.com/downloads")
             
         if not self.config.isAdmin :
-            raise PyKotaCommandLineError, "%s : %s" % (pwd.getpwuid(os.geteuid())[0], _("You're not allowed to use this command."))
+            raise PyKotaCommandLineError(
+                "{} : {}".format(pwd.getpwuid(os.geteuid())[0], "You're not allowed to use this command."))
         
         try :    
             vat = float(options["vat"])
             if not (0.0 <= vat < 100.0) :
                 raise ValueError
         except :    
-            raise PyKotaCommandLineError, _("Incorrect value '%s' for the --vat command line option") % options["vat"]
+            raise PyKotaCommandLineError(f"Incorrect value '{options['vat']}' for the --vat command line option")
             
         try :    
             firstnumber = number = int(options["number"])
             if number <= 0 :
                 raise ValueError
         except :    
-            raise PyKotaCommandLineError, _("Incorrect value '%s' for the --number command line option") % options["number"]
+            raise PyKotaCommandLineError(f"Incorrect value '{options['number']}' for the --number command line option")
             
         self.pagesize = self.getPageSize(options["pagesize"])
         if self.pagesize is None :
             self.pagesize = self.getPageSize("a4")
-            self.printInfo(_("Invalid 'pagesize' option %s, defaulting to A4.") % options["pagesize"], "warn")
+            self.printInfo(f"Invalid 'pagesize' option {options['pagesize']}, defaulting to A4.", "warn")
             
         extractonly = {}
         for filterexp in arguments :
@@ -305,14 +306,14 @@ class PKInvoice(PyKotaTool) :
                     if filterkey not in self.validfilterkeys :
                         raise ValueError                
                 except ValueError :    
-                    raise PyKotaCommandLineError, _("Invalid filter value [%s], see help.") % filterexp
+                    raise PyKotaCommandLineError(f"Invalid filter value [{filterexp}], see help.")
                 else :    
                     extractonly.update({ filterkey : filtervalue })
             
         percent = Percent(self)
         outfname = options["output"].strip()
         if outfname != "-" :
-            percent.display("%s..." % _("Extracting datas"))
+            percent.display("Extracting datas...")
             
         username = extractonly.get("username")    
         if username :
@@ -361,7 +362,7 @@ class PKInvoice(PyKotaTool) :
             percent.done()
         self.genInvoices(peruser, options["logo"].strip(), outfname, firstnumber, options["unit"], vat)
         if outfname != "-" :    
-            print _("Invoiced %i users for %i jobs, %i pages and %.3f credits") % (len(peruser), nbjobs, nbpages, nbcredits)
+            print(f"Invoiced {len(peruser):d} users for {nbjobs:d} jobs, {nbpages:d} pages and {nbcredits:.3f} credits")
                      
 if __name__ == "__main__" : 
     retcode = 0
@@ -369,12 +370,12 @@ if __name__ == "__main__" :
         defaults = { "vat" : "0.0",
                      "unit" : N_("Credits"),
                      "output" : "-",
-                     "pagesize" : "a4", \
+                     "pagesize" : "a4",
                      "logo" : "/usr/share/pykota/logos/pykota.jpeg",
                      "number" : "1",
                    }
         short_options = "vho:u:V:p:l:n:"
-        long_options = ["help", "version", "unit=", "output=", \
+        long_options = ["help", "version", "unit=", "output=",
                         "pagesize=", "logo=", "vat=", "number="]
         
         # Initializes the command line tool
@@ -406,8 +407,8 @@ if __name__ == "__main__" :
     except KeyboardInterrupt :        
         sys.stderr.write("\nInterrupted with Ctrl+C !\n")
         retcode = -3
-    except PyKotaCommandLineError, msg :     
-        sys.stderr.write("%s : %s\n" % (sys.argv[0], msg))
+    except PyKotaCommandLineError as msg :
+        sys.stderr.write(f"{sys.argv[0]} : {msg}\n")
         retcode = -2
     except SystemExit :        
         pass

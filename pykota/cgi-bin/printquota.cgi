@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 # -*- coding: ISO-8859-15 -*-
 
 # PyKota Print Quota Reports generator
@@ -29,7 +29,7 @@ import os
 import cgi
 import urllib
 
-from mx import DateTime
+from datetime import datetime
 
 from pykota import version
 from pykota.tool import PyKotaTool, PyKotaToolError
@@ -66,7 +66,7 @@ header = """Content-type: text/html;charset=%s
             </td>
           </tr>
         </table>"""
-    
+
 footer = """
         <table>
           <tr>
@@ -89,212 +89,223 @@ footer = """
       </font>
     </p>
   </body>
-</html>"""  
+</html>"""
 
-class PyKotaReportGUI(PyKotaTool) :
+
+class PyKotaReportGUI(PyKotaTool):
     """PyKota Administrative GUI"""
-    def guiDisplay(self) :
+
+    def guiDisplay(self):
         """Displays the administrative interface."""
         global header, footer
-        print header % (self.charset, _("PyKota Reports"), \
-                        self.language, self.charset, \
-                        self.config.getLogoLink(), \
-                        self.config.getLogoURL(), version.__version__, \
-                        self.config.getLogoLink(), \
-                        version.__version__, _("PyKota Reports"), \
-                        _("Report"))
-        print self.body
-        print footer % (_("Report"), version.__doc__, version.__years__, version.__author__, version.__gplblurb__)
-        
-    def error(self, message) :
+        print(header % (self.charset, "PyKota Reports",
+                        self.language, self.charset,
+                        self.config.get_logo_link(),
+                        self.config.get_logo_url(), version.__version__,
+                        self.config.get_logo_link(),
+                        version.__version__, "PyKota Reports",
+                        "Report"))
+        print(self.body)
+        print(footer % ("Report", version.__doc__, version.__years__, version.__author__, version.__gplblurb__))
+
+    def error(self, message):
         """Adds an error message to the GUI's body."""
-        if message :
-            self.body = '<p><font color="red">%s</font></p>\n%s' % (message, self.body)
-        
-    def htmlListPrinters(self, selected=[], mask="*") :    
+        if message:
+            self.body = f'<p><font color="red">{message}</font></p>\n{self.body}'
+
+    def htmlListPrinters(self, selected=[], mask="*"):
         """Displays the printers multiple selection list."""
         printers = self.storage.getMatchingPrinters(mask)
         selectednames = [p.Name for p in selected]
-        message = '<table><tr><td valign="top">%s :</td><td valign="top"><select name="printers" multiple="multiple">' % _("Printer")
-        for printer in printers :
-            if printer.Name in selectednames :
-                message += '<option value="%s" selected="selected">%s (%s)</option>' % (printer.Name, printer.Name, printer.Description)
-            else :
-                message += '<option value="%s">%s (%s)</option>' % (printer.Name, printer.Name, printer.Description)
+        message = '<table><tr><td valign="top">{} :</td><td valign="top"><select name="printers" multiple="multiple">'.format("Printer")
+        for printer in printers:
+            if printer.Name in selectednames:
+                message += f'<option value="{printer.Name}" selected="selected">{printer.Name} ({printer.Description})</option>'
+            else:
+                message += f'<option value="{printer.Name}">{printer.Name} ({printer.Description})</option>'
         message += '</select></td></tr></table>'
         return message
-        
-    def htmlUGNamesInput(self, value="*") :    
+
+    def htmlUGNamesInput(self, value="*"):
         """Input field for user/group names wildcard."""
-        return _("User / Group names mask") + (' : <input type="text" name="ugmask" size="20" value="%s" /> <em>e.g. <strong>jo*</strong></em>' % (value or "*"))
-        
-    def htmlGroupsCheckbox(self, isgroup=0) :
+        return "User / Group names mask" + (
+            f' : <input type="text" name="ugmask" size="20" value="{value or "*"}" /> <em>e.g. <strong>jo*</strong></em>')
+
+    def htmlGroupsCheckbox(self, isgroup=0):
         """Groups checkbox."""
-        if isgroup :
-            return _("Groups report") + ' : <input type="checkbox" checked="checked" name="isgroup" />'
-        else :    
-            return _("Groups report") + ' : <input type="checkbox" name="isgroup" />'
-            
-    def guiAction(self) :
+        if isgroup:
+            return "Groups report" + ' : <input type="checkbox" checked="checked" name="isgroup" />'
+        else:
+            return "Groups report" + ' : <input type="checkbox" name="isgroup" />'
+
+    def guiAction(self):
         """Main function"""
         printers = ugmask = isgroup = None
-        remuser = os.environ.get("REMOTE_USER", "root")    
+        remuser = os.environ.get("REMOTE_USER", "root")
         # special hack to accomodate mod_auth_ldap Apache module
-        try :
+        try:
             remuser = remuser.split("=")[1].split(",")[0]
-        except IndexError :    
+        except IndexError:
             pass
-        self.body = "<p>%s</p>\n" % _("Please click on the above button")
-        if self.form.has_key("report") :
-            if self.form.has_key("printers") :
+        self.body = f"<p>{'Please click on the above button'}</p>\n"
+        if self.form.has_key("report"):
+            if self.form.has_key("printers"):
                 printersfield = self.form["printers"]
-                if type(printersfield) != type([]) :
-                    printersfield = [ printersfield ]
+                if type(printersfield) != type([]):
+                    printersfield = [printersfield]
                 printers = [self.storage.getPrinter(p.value) for p in printersfield]
-            else :    
+            else:
                 printers = self.storage.getMatchingPrinters("*")
-            if remuser == "root" :
-                if self.form.has_key("ugmask") :     
+            if remuser == "root":
+                if self.form.has_key("ugmask"):
                     ugmask = self.form["ugmask"].value
-                else :     
+                else:
                     ugmask = "*"
-            else :        
-                if self.form.has_key("isgroup") :    
+            else:
+                if self.form.has_key("isgroup"):
                     user = self.storage.getUser(remuser)
-                    if user.Exists :
-                        ugmask = " ".join([ g.Name for g in self.storage.getUserGroups(user) ])
-                    else :    
-                        ugmask = remuser # result will probably be empty, we don't care
-                else :    
+                    if user.Exists:
+                        ugmask = " ".join([g.Name for g in self.storage.getUserGroups(user)])
+                    else:
+                        ugmask = remuser  # result will probably be empty, we don't care
+                else:
                     ugmask = remuser
-            if self.form.has_key("isgroup") :    
+            if self.form.has_key("isgroup"):
                 isgroup = 1
-            else :    
+            else:
                 isgroup = 0
-        self.body += self.htmlListPrinters(printers or [])            
+        self.body += self.htmlListPrinters(printers or [])
         self.body += "<br />"
         self.body += self.htmlUGNamesInput(ugmask)
         self.body += "<br />"
         self.body += self.htmlGroupsCheckbox(isgroup)
-        try :
-            if not self.form.has_key("history") :
-                if printers and ugmask :
+        try:
+            if not self.form.has_key("history"):
+                if printers and ugmask:
                     self.reportingtool = openReporter(admin, "html", printers, ugmask.split(), isgroup)
-                    self.body += "%s" % self.reportingtool.generateReport()
-            else :        
-                if remuser != "root" :
+                    self.body += f"{self.reportingtool.generate_report()}"
+            else:
+                if remuser != "root":
                     username = remuser
-                elif self.form.has_key("username") :    
+                elif self.form.has_key("username"):
                     username = self.form["username"].value
-                else :    
+                else:
                     username = None
-                if username is not None :    
+                if username is not None:
                     user = self.storage.getUser(username)
-                else :    
+                else:
                     user = None
-                if self.form.has_key("printername") :
+                if self.form.has_key("printername"):
                     printer = self.storage.getPrinter(self.form["printername"].value)
-                else :    
+                else:
                     printer = None
-                if self.form.has_key("datelimit") :    
+                if self.form.has_key("datelimit"):
                     datelimit = self.form["datelimit"].value
-                else :    
+                else:
                     datelimit = None
-                if self.form.has_key("hostname") :    
+                if self.form.has_key("hostname"):
                     hostname = self.form["hostname"].value
-                else :    
+                else:
                     hostname = None
-                if self.form.has_key("billingcode") :    
+                if self.form.has_key("billingcode"):
                     billingcode = self.form["billingcode"].value
-                else :    
+                else:
                     billingcode = None
-                self.report = ["<h2>%s</h2>" % _("History")]    
-                history = self.storage.retrieveHistory(user=user, printer=printer, hostname=hostname, billingcode=billingcode, end=datelimit)
-                if not history :
-                    self.report.append("<h3>%s</h3>" % _("Empty"))
-                else :
+                self.report = [f"<h2>{'History'}</h2>"]
+                history = self.storage.retrieveHistory(user=user, printer=printer, hostname=hostname,
+                                                       billingcode=billingcode, end=datelimit)
+                if not history:
+                    self.report.append(f"<h3>{'Empty'}</h3>")
+                else:
                     self.report.append('<table class="pykotatable" border="1">')
-                    headers = [_("Date"), _("Action"), _("User"), _("Printer"), \
-                               _("Hostname"), _("JobId"), _("Number of pages"), \
-                               _("Cost"), _("Copies"), _("Number of bytes"), \
-                               _("Printer's internal counter"), _("Title"), _("Filename"), \
-                               _("Options"), _("MD5Sum"), _("Billing code"), \
-                               _("Precomputed number of pages"), _("Precomputed cost"), _("Pages details") + " " + _("(not supported yet)")]
-                    self.report.append('<tr class="pykotacolsheader">%s</tr>' % "".join(["<th>%s</th>" % h for h in headers]))
+                    headers = ["Date", "Action", "User", "Printer",
+                               "Hostname", "JobId", "Number of pages",
+                               "Cost", "Copies", "Number of bytes",
+                               "Printer's internal counter", "Title", "Filename",
+                               "Options", "MD5Sum", "Billing code",
+                               "Precomputed number of pages", "Precomputed cost",
+                               "Pages details" + " " + "(not supported yet)"]
+                    self.report.append(
+                        f'<tr class="pykotacolsheader">{"".join(["<th>%s</th>" % h for h in headers])}</tr>')
                     oddeven = 0
-                    for job in history :
+                    for job in history:
                         oddeven += 1
-                        if job.JobAction == "ALLOW" :    
-                            if oddeven % 2 :
+                        if job.JobAction == "ALLOW":
+                            if oddeven % 2:
                                 oddevenclass = "odd"
-                            else :    
+                            else:
                                 oddevenclass = "even"
-                        else :
+                        else:
                             oddevenclass = (job.JobAction or "UNKNOWN").lower()
-                        username_url = '<a href="%s?%s">%s</a>' % (os.environ.get("SCRIPT_NAME", ""), urllib.urlencode({"history" : 1, "username" : job.UserName}), job.UserName)
-                        printername_url = '<a href="%s?%s">%s</a>' % (os.environ.get("SCRIPT_NAME", ""), urllib.urlencode({"history" : 1, "printername" : job.PrinterName}), job.PrinterName)
-                        if job.JobHostName :
-                            hostname_url = '<a href="%s?%s">%s</a>' % (os.environ.get("SCRIPT_NAME", ""), urllib.urlencode({"history" : 1, "hostname" : job.JobHostName}), job.JobHostName)
-                        else :    
+                        username_url = f'<a href="{os.environ.get("SCRIPT_NAME", "")}?{urllib.urlencode({"history": 1, "username": job.UserName})}">{job.UserName}</a>'
+                        printername_url = '<a href="{}?{}">{}</a>'.format(os.environ.get("SCRIPT_NAME", ""),
+                                                                          urllib.urlencode({"history": 1,
+                                                                                            "printername": job.PrinterName}),
+                                                                          job.PrinterName)
+                        if job.JobHostName:
+                            hostname_url = '<a href="{}?{}">{}</a>'.format(os.environ.get("SCRIPT_NAME", ""),
+                                                                           urllib.urlencode(
+                                                                               {"history": 1,
+                                                                                "hostname": job.JobHostName}),
+                                                                           job.JobHostName)
+                        else:
                             hostname_url = None
-                        if job.JobBillingCode :
-                            billingcode_url = '<a href="%s?%s">%s</a>' % (os.environ.get("SCRIPT_NAME", ""), urllib.urlencode({"history" : 1, "billingcode" : job.JobBillingCode}), job.JobBillingCode)
-                        else :    
+                        if job.JobBillingCode:
+                            billingcode_url = '<a href="{}?{}">{}</a>'.format(os.environ.get("SCRIPT_NAME", ""),
+                                                                              urllib.urlencode({"history": 1,
+                                                                                                "billingcode": job.JobBillingCode}),
+                                                                              job.JobBillingCode)
+                        else:
                             billingcode_url = None
-                        curdate = DateTime.ISO.ParseDateTime(str(job.JobDate)[:19])
-                        self.report.append('<tr class="%s">%s</tr>' % \
-                                              (oddevenclass, \
-                                               "".join(["<td>%s</td>" % (h or "&nbsp;") \
-                                                  for h in (str(curdate)[:19], \
-                                                            _(job.JobAction), \
-                                                            username_url, \
-                                                            printername_url, \
-                                                            hostname_url, \
-                                                            job.JobId, \
-                                                            job.JobSize, \
-                                                            job.JobPrice, \
-                                                            job.JobCopies, \
-                                                            job.JobSizeBytes, \
-                                                            job.PrinterPageCounter, \
-                                                            job.JobTitle, \
-                                                            job.JobFileName, \
-                                                            job.JobOptions, \
-                                                            job.JobMD5Sum, \
-                                                            billingcode_url, \
-                                                            job.PrecomputedJobSize, \
-                                                            job.PrecomputedJobPrice, \
-                                                            job.JobPages)])))
+                        curdate = datetime.fromisoformat(str(job.JobDate)[:19])
+                        self.report.append('<tr class="{}">{}</tr>' \
+                                           .format(oddevenclass,
+                                                   "".join([f"<td>{h or '&nbsp;'}</td>"
+                                                            for h in (str(curdate)[:19],
+                                                                      job.JobAction,
+                                                                      username_url,
+                                                                      printername_url,
+                                                                      hostname_url,
+                                                                      job.JobId,
+                                                                      job.JobSize,
+                                                                      job.JobPrice,
+                                                                      job.JobCopies,
+                                                                      job.JobSizeBytes,
+                                                                      job.PrinterPageCounter,
+                                                                      job.JobTitle,
+                                                                      job.JobFileName,
+                                                                      job.JobOptions,
+                                                                      job.JobMD5Sum,
+                                                                      billingcode_url,
+                                                                      job.PrecomputedJobSize,
+                                                                      job.PrecomputedJobPrice,
+                                                                      job.JobPages)])))
                     self.report.append('</table>')
-                    dico = { "history" : 1,
-                             "datelimit" : "%04i-%02i-%02i %02i:%02i:%02i" \
-                                                         % (curdate.year, \
-                                                            curdate.month, \
-                                                            curdate.day, \
-                                                            curdate.hour, \
-                                                            curdate.minute, \
-                                                            curdate.second),
-                           }
-                    if user and user.Exists :
-                        dico.update({ "username" : user.Name })
-                    if printer and printer.Exists :
-                        dico.update({ "printername" : printer.Name })
-                    if hostname :    
-                        dico.update({ "hostname" : hostname })
-                    prevurl = "%s?%s" % (os.environ.get("SCRIPT_NAME", ""), urllib.urlencode(dico))
-                    self.report.append('<a href="%s">%s</a>' % (prevurl, _("Previous page")))
-                self.body = "\n".join(self.report)    
-        except :
-                self.body += '<p><font color="red">%s</font></p>' % self.crashed("CGI Error").replace("\n", "<br />")
-            
-if __name__ == "__main__" :
+                    dico = {"history": 1,
+                            "datelimit": f"{curdate.year:04d}-{curdate.month:02d}-{curdate.day:02d} {curdate.hour:02d}:{curdate.minute:02d}:{curdate.second:02d}",
+                            }
+                    if user and user.Exists:
+                        dico.update({"username": user.Name})
+                    if printer and printer.Exists:
+                        dico.update({"printername": printer.Name})
+                    if hostname:
+                        dico.update({"hostname": hostname})
+                    prevurl = f"{os.environ.get('SCRIPT_NAME', '')}?{urllib.urlencode(dico)}"
+                    self.report.append(f'<a href="{prevurl}">{"Previous page"}</a>')
+                self.body = "\n".join(self.report)
+        except:
+            self.body += '<p><font color="red">{}</font></p>'.format(self.crashed("CGI Error").replace("\n", "<br />"))
+
+
+if __name__ == "__main__":
     admin = PyKotaReportGUI(lang=getLanguagePreference(), charset=getCharsetPreference())
     admin.deferredInit()
     admin.form = cgi.FieldStorage()
     admin.guiAction()
     admin.guiDisplay()
-    try :
+    try:
         admin.storage.close()
-    except (TypeError, NameError, AttributeError) :    
+    except (TypeError, NameError, AttributeError):
         pass
-        
+
     sys.exit(0)

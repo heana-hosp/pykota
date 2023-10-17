@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: ISO-8859-15 -*-
 
 # PyKota Print Quota Editor 
@@ -144,184 +144,192 @@ examples :
   entries on all printers which name begin with 'HP' or
   'XER'. The jobs printed by these users on these printers
   will be deleted from the history.
-""") 
-        
-class EdPyKota(PyKotaTool) :        
+""")
+
+
+class EdPyKota(PyKotaTool):
     """A class for edpykota."""
-    def modifyPQEntry(self, pqkey, pqentry, noquota, softlimit, hardlimit, increase, reset, hardreset, suffix, used) :
+
+    def modifyPQEntry(self, pqkey, pqentry, noquota, softlimit, hardlimit, increase, reset, hardreset, suffix, used):
         """Modifies a print quota entry."""
-        if noquota or ((softlimit is not None) and (hardlimit is not None)) :
+        if noquota or ((softlimit is not None) and (hardlimit is not None)):
             pqentry.setLimits(softlimit, hardlimit)
-        if increase :
-            newsoft = (pqentry.SoftLimit or 0) + increase         
-            newhard = (pqentry.HardLimit or 0) + increase         
-            if (newsoft >= 0) and (newhard >= 0) :
+        if increase:
+            newsoft = (pqentry.SoftLimit or 0) + increase
+            newhard = (pqentry.HardLimit or 0) + increase
+            if (newsoft >= 0) and (newhard >= 0):
                 pqentry.setLimits(newsoft, newhard)
-            else :    
-                self.printInfo(_("You can't set negative limits for %s") % pqkey, "error")
-        if reset :
+            else:
+                self.printInfo(f"You can't set negative limits for {pqkey}", "error")
+        if reset:
             pqentry.reset()
-        if hardreset :    
+        if hardreset:
             pqentry.hardreset()
-        if suffix == "User" :
-            if used :
+        if suffix == "User":
+            if used:
                 pqentry.setUsage(used)
-    
-    def main(self, names, options) :
+
+    def main(self, names, options):
         """Edit user or group quotas."""
         names = self.sanitizeNames(options, names)
-        suffix = (options["groups"] and "Group") or "User"        
+        suffix = (options["groups"] and "Group") or "User"
         printernames = options["printer"].split(",")
-            
-        if not options["list"] :
+
+        if not options["list"]:
             percent = Percent(self)
-            percent.display("%s..." % _("Extracting datas"))
+            percent.display(f"{'Extracting datas'}...")
         printers = self.storage.getMatchingPrinters(options["printer"])
-        entries = getattr(self.storage, "getMatching%ss" % suffix)(",".join(names))
-        if not options["list"] :
+        entries = getattr(self.storage, f"getMatching{suffix}s")(",".join(names))
+        if not options["list"]:
             percent.setSize(len(printers) * len(entries))
-        
-        if options["list"] :
-            for printer in printers :
-                for entry in entries :
-                    pqentry = getattr(self.storage, "get%sPQuota" % suffix)(entry, printer)
-                    if pqentry.Exists :
-                        print "%s@%s" % (entry.Name, printer.Name)
-                        print "    %s" % (_("Page counter : %s") % pqentry.PageCounter)
-                        print "    %s" % (_("Lifetime page counter : %s") % pqentry.LifePageCounter)
-                        print "    %s" % (_("Soft limit : %s") % pqentry.SoftLimit)
-                        print "    %s" % (_("Hard limit : %s") % pqentry.HardLimit)
-                        print "    %s" % (_("Date limit : %s") % pqentry.DateLimit)
-                        print "    %s (Not supported yet)" % (_("Maximum job size : %s") % ((pqentry.MaxJobSize and (_("%s pages") % pqentry.MaxJobSize)) or _("Unlimited")))
-                        if hasattr(pqentry, "WarnCount") :
-                            print "    %s" % (_("Warning banners printed : %s") % pqentry.WarnCount)
-                        print
-        elif options["delete"] :    
-            percent.display("\n%s..." % _("Deletion"))
-            getattr(self.storage, "deleteMany%sPQuotas" % suffix)(printers, entries)
+
+        if options["list"]:
+            for printer in printers:
+                for entry in entries:
+                    pqentry = getattr(self.storage, f"get{suffix}PQuota")(entry, printer)
+                    if pqentry.Exists:
+                        print(f"{entry.Name}@{printer.Name}")
+                        print(f"    Page counter : {pqentry.PageCounter}")
+                        print(f"    Lifetime page counter : {pqentry.LifePageCounter}")
+                        print(f"    Soft limit : {pqentry.SoftLimit}")
+                        print(f"    Hard limit : {pqentry.HardLimit}")
+                        print(f"    Date limit : {pqentry.DateLimit}")
+                        print("    {} (Not supported yet)".format(
+                            f"Maximum job size : {(pqentry.MaxJobSize and (f'{pqentry.MaxJobSize} pages')) or 'Unlimited'}"))
+                        if hasattr(pqentry, "WarnCount"):
+                            print(f"    Warning banners printed : {pqentry.WarnCount}")
+                        print()
+        elif options["delete"]:
+            percent.display(f"\n{'Deletion'}...")
+            getattr(self.storage, f"deleteMany{suffix}PQuotas")(printers, entries)
             percent.display("\n")
-        else :
+        else:
             skipexisting = options["skipexisting"]
             used = options["used"]
-            if used :
+            if used:
                 used = used.strip()
-                try :
+                try:
                     int(used)
-                except ValueError :
-                    raise PyKotaCommandLineError, _("Invalid used value %s.") % used
-                    
+                except ValueError:
+                    raise PyKotaCommandLineError(f"Invalid used value {used}.")
+
             increase = options["increase"]
-            if increase :
-                try :
+            if increase:
+                try:
                     increase = int(increase.strip())
-                except ValueError :
-                    raise PyKotaCommandLineError, _("Invalid increase value %s.") % increase
-            
+                except ValueError:
+                    raise PyKotaCommandLineError(f"Invalid increase value {increase}.")
+
             noquota = options["noquota"]
-            reset = options["reset"]        
+            reset = options["reset"]
             hardreset = options["hardreset"]
             softlimit = hardlimit = None
-            if not noquota :
-                if options["softlimit"] :
-                    try :
+            if not noquota:
+                if options["softlimit"]:
+                    try:
                         softlimit = int(options["softlimit"].strip())
-                        if softlimit < 0 :
+                        if softlimit < 0:
                             raise ValueError
-                    except ValueError :    
-                        raise PyKotaCommandLineError, _("Invalid softlimit value %s.") % options["softlimit"]
-                if options["hardlimit"] :
-                    try :
+                    except ValueError:
+                        raise PyKotaCommandLineError(f"Invalid softlimit value {options['softlimit']}.")
+                if options["hardlimit"]:
+                    try:
                         hardlimit = int(options["hardlimit"].strip())
-                        if hardlimit < 0 :
+                        if hardlimit < 0:
                             raise ValueError
-                    except ValueError :    
-                        raise PyKotaCommandLineError, _("Invalid hardlimit value %s.") % options["hardlimit"]
-                if (softlimit is not None) and (hardlimit is not None) and (hardlimit < softlimit) :        
+                    except ValueError:
+                        raise PyKotaCommandLineError(f"Invalid hardlimit value {options['hardlimit']}.")
+                if (softlimit is not None) and (hardlimit is not None) and (hardlimit < softlimit):
                     # error, exchange them
-                    self.printInfo(_("Hard limit %i is less than soft limit %i, values will be exchanged.") % (hardlimit, softlimit))
+                    self.printInfo(
+                        f"Hard limit {hardlimit:d} is less than soft limit {softlimit:d}, values will be exchanged.")
                     (softlimit, hardlimit) = (hardlimit, softlimit)
-                if hardlimit is None :    
+                if hardlimit is None:
                     hardlimit = softlimit
-                    if hardlimit is not None :
-                        self.printInfo(_("Undefined hard limit set to soft limit (%s).") % str(hardlimit))
-                if softlimit is None :    
+                    if hardlimit is not None:
+                        self.printInfo(f"Undefined hard limit set to soft limit ({str(hardlimit)}).")
+                if softlimit is None:
                     softlimit = hardlimit
-                    if softlimit is not None :
-                        self.printInfo(_("Undefined soft limit set to hard limit (%s).") % str(softlimit))
-                        
-            self.storage.beginTransaction()            
-            try :
-                if options["add"] :
-                    percent.display("\n%s...\n" % _("Creation"))
-                    if not entries :    
-                        self.printInfo(_("No entry matches %s. Please use pkusers to create them first.") % (" ".join(names)), "warn")
-                            
-                    factory = globals()["Storage%sPQuota" % suffix]
-                    for printer in printers :
+                    if softlimit is not None:
+                        self.printInfo(f"Undefined soft limit set to hard limit ({str(softlimit)}).")
+
+            self.storage.beginTransaction()
+            try:
+                if options["add"]:
+                    percent.display(f"\n{'Creation'}...\n")
+                    if not entries:
+                        self.printInfo(f"No entry matches {' '.join(names)}. Please use pkusers to create them first.",
+                                       "warn")
+
+                    factory = globals()[f"Storage{suffix}PQuota"]
+                    for printer in printers:
                         pname = printer.Name
-                        for entry in entries :
+                        for entry in entries:
                             ename = entry.Name
-                            pqkey = "%s@%s" % (ename, pname)
+                            pqkey = f"{ename}@{pname}"
                             pqentry = factory(self.storage, entry, printer)
-                            self.modifyPQEntry(pqkey, pqentry, noquota, \
-                                                        softlimit, hardlimit, \
-                                                        increase, reset, \
-                                                        hardreset, suffix, used)
-                            oldpqentry = getattr(self.storage, "add%sPQuota" % suffix)(pqentry)
-                            if oldpqentry is not None :    
-                                if skipexisting :
-                                    self.logdebug("%s print quota entry %s@%s already exists, skipping." % (suffix, ename, pname))
-                                else :    
-                                    self.logdebug("%s print quota entry %s@%s already exists, will be modified." % (suffix, ename, pname))
-                                    self.modifyPQEntry(pqkey, oldpqentry, noquota, \
-                                                        softlimit, hardlimit, \
-                                                        increase, reset, \
-                                                        hardreset, suffix, used)
-                                    oldpqentry.save()                    
+                            self.modifyPQEntry(pqkey, pqentry, noquota,
+                                               softlimit, hardlimit,
+                                               increase, reset,
+                                               hardreset, suffix, used)
+                            oldpqentry = getattr(self.storage, f"add{suffix}PQuota")(pqentry)
+                            if oldpqentry is not None:
+                                if skipexisting:
+                                    self.logdebug(
+                                        f"{suffix} print quota entry {ename}@{pname} already exists, skipping.")
+                                else:
+                                    self.logdebug(
+                                        f"{suffix} print quota entry {ename}@{pname} already exists, will be modified.")
+                                    self.modifyPQEntry(pqkey, oldpqentry, noquota,
+                                                       softlimit, hardlimit,
+                                                       increase, reset,
+                                                       hardreset, suffix, used)
+                                    oldpqentry.save()
                             percent.oneMore()
-                else :        
-                    percent.display("\n%s...\n" % _("Modification"))
-                    for printer in printers :
-                        for entry in entries :
-                            pqkey = "%s@%s" % (entry.Name, printer.Name)
-                            pqentry = getattr(self.storage, "get%sPQuota" % suffix)(entry, printer)
-                            if pqentry.Exists :     
-                                self.modifyPQEntry(pqkey, pqentry, noquota, \
-                                                    softlimit, hardlimit, \
-                                                    increase, reset, \
-                                                    hardreset, suffix, used)
-                                pqentry.save()        
+                else:
+                    percent.display(f"\n{'Modification'}...\n")
+                    for printer in printers:
+                        for entry in entries:
+                            pqkey = f"{entry.Name}@{printer.Name}"
+                            pqentry = getattr(self.storage, f"get{suffix}PQuota")(entry, printer)
+                            if pqentry.Exists:
+                                self.modifyPQEntry(pqkey, pqentry, noquota,
+                                                   softlimit, hardlimit,
+                                                   increase, reset,
+                                                   hardreset, suffix, used)
+                                pqentry.save()
                             percent.oneMore()
-            except :                    
+            except:
                 self.storage.rollbackTransaction()
                 raise
-            else :    
+            else:
                 self.storage.commitTransaction()
-                            
-        if not options["list"] :
+
+        if not options["list"]:
             percent.done()
-            
-if __name__ == "__main__" : 
+
+
+if __name__ == "__main__":
     retcode = 0
-    try :
-        defaults = { \
-                     "printer" : "*", \
-                   }
+    try:
+        defaults = {
+            "printer": "*",
+        }
         short_options = "vhdnagrLP:S:H:G:RU:I:s"
-        long_options = ["help", "version", \
-                        "delete", "list", \
-                        "noquota", "add", \
-                        "groups", "reset", "hardreset", \
-                        "printer=", "softlimit=", "hardlimit=", \
+        long_options = ["help", "version",
+                        "delete", "list",
+                        "noquota", "add",
+                        "groups", "reset", "hardreset",
+                        "printer=", "softlimit=", "hardlimit=",
                         "increase=", "used=", "skipexisting"]
-        
+
         # Initializes the command line tool
         manager = EdPyKota(doc=__doc__)
         manager.deferredInit()
-        
+
         # parse and checks the command line
         (options, args) = manager.parseCommandline(sys.argv[1:], short_options, long_options)
-        
+
         # sets long options
         options["help"] = options["h"] or options["help"]
         options["version"] = options["v"] or options["version"]
@@ -329,47 +337,47 @@ if __name__ == "__main__" :
         options["groups"] = options["g"] or options["groups"]
         options["printer"] = options["P"] or options["printer"] or defaults["printer"]
         options["softlimit"] = options["S"] or options["softlimit"]
-        options["hardlimit"] = options["H"] or options["hardlimit"] 
-        options["reset"] = options["r"] or options["reset"] 
+        options["hardlimit"] = options["H"] or options["hardlimit"]
+        options["reset"] = options["r"] or options["reset"]
         options["noquota"] = options["n"] or options["noquota"]
-        options["delete"] = options["d"] or options["delete"] 
-        options["hardreset"] = options["R"] or options["hardreset"] 
+        options["delete"] = options["d"] or options["delete"]
+        options["hardreset"] = options["R"] or options["hardreset"]
         options["used"] = options["U"] or options["used"]
         options["increase"] = options["I"] or options["increase"]
         options["list"] = options["L"] or options["list"]
         options["skipexisting"] = options["s"] or options["skipexisting"]
-        
-        if options["help"] :
+
+        if options["help"]:
             manager.display_usage_and_quit()
-        elif options["version"] :
+        elif options["version"]:
             manager.display_version_and_quit()
         elif (options["add"] and options["delete"]) \
-             or (options["noquota"] and (options["hardlimit"] or options["softlimit"])) \
-             or (options["groups"] and options["used"]) \
-             or (options["skipexisting"] and not options["add"]) :
-            raise PyKotaCommandLineError, _("incompatible options, see help.")
-        elif options["delete"] and not args :
-            raise PyKotaCommandLineError, _("You have to pass user or group names on the command line")
-        else :
+                or (options["noquota"] and (options["hardlimit"] or options["softlimit"])) \
+                or (options["groups"] and options["used"]) \
+                or (options["skipexisting"] and not options["add"]):
+            raise PyKotaCommandLineError("incompatible options, see help.")
+        elif options["delete"] and not args:
+            raise PyKotaCommandLineError("You have to pass user or group names on the command line")
+        else:
             retcode = manager.main(args, options)
-    except KeyboardInterrupt :        
+    except KeyboardInterrupt:
         sys.stderr.write("\nInterrupted with Ctrl+C !\n")
         retcode = -3
-    except PyKotaCommandLineError, msg :     
-        sys.stderr.write("%s : %s\n" % (sys.argv[0], msg))
+    except PyKotaCommandLineError as msg:
+        sys.stderr.write(f"{sys.argv[0]} : {msg}\n")
         retcode = -2
-    except SystemExit :        
+    except SystemExit:
         pass
-    except :
-        try :
+    except:
+        try:
             manager.crashed("edpykota failed")
-        except :    
+        except:
             crashed("edpykota failed")
         retcode = -1
 
-    try :
+    try:
         manager.storage.close()
-    except (TypeError, NameError, AttributeError) :    
+    except (TypeError, NameError, AttributeError):
         pass
-        
-    sys.exit(retcode)    
+
+    sys.exit(retcode)

@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: ISO-8859-15 -*-
 
 # PyKota Turn Key tool
@@ -103,156 +103,159 @@ examples :
   printers, by passing their names at the end of the command line.
 """)
 
-class PKTurnKey(Tool) :
+
+class PKTurnKey(Tool):
     """A class for an initialization tool."""
-    def listPrinters(self, namestomatch) :
+
+    def listPrinters(self, namestomatch):
         """Returns a list of tuples (queuename, deviceuri) for all existing print queues."""
         self.printInfo("Extracting all print queues.")
         printers = []
         server = pkipplib.CUPS()
-        for queuename in server.getPrinters() :
+        for queuename in server.getPrinters():
             req = server.newRequest(pkipplib.IPP_GET_PRINTER_ATTRIBUTES)
             req.operation["printer-uri"] = ("uri", server.identifierToURI("printers", queuename))
             req.operation["requested-attributes"] = ("keyword", "device-uri")
             result = server.doRequest(req)
-            try :
+            try:
                 deviceuri = result.printer["device-uri"][0][1]
-            except (AttributeError, IndexError, KeyError) :
+            except (AttributeError, IndexError, KeyError):
                 deviceuri = None
-            if deviceuri is not None :
-                if self.matchString(queuename, namestomatch) :
+            if deviceuri is not None:
+                if self.matchString(queuename, namestomatch):
                     printers.append((queuename, deviceuri))
-                else :
+                else:
                     self.printInfo("Print queue %s skipped." % queuename)
         return printers
 
-    def listUsers(self, uidmin, uidmax) :
+    def listUsers(self, uidmin, uidmax):
         """Returns a list of users whose uids are between uidmin and uidmax."""
-        self.printInfo("Extracting all users whose uid is between %s and %s." % (uidmin, uidmax))
+        self.printInfo(f"Extracting all users whose uid is between {uidmin} and {uidmax}.")
         return [(entry[0], entry[3]) for entry in pwd.getpwall() if uidmin <= entry[2] <= uidmax]
 
-    def listGroups(self, gidmin, gidmax, users) :
+    def listGroups(self, gidmin, gidmax, users):
         """Returns a list of groups whose gids are between gidmin and gidmax."""
-        self.printInfo("Extracting all groups whose gid is between %s and %s." % (gidmin, gidmax))
+        self.printInfo(f"Extracting all groups whose gid is between {gidmin} and {gidmax}.")
         groups = [(entry[0], entry[2], entry[3]) for entry in grp.getgrall() if gidmin <= entry[2] <= gidmax]
         gidusers = {}
         usersgid = {}
-        for u in users :
+        for u in users:
             gidusers.setdefault(u[1], []).append(u[0])
             usersgid.setdefault(u[0], []).append(u[1])
 
         membership = {}
-        for g in range(len(groups)) :
+        for g in range(len(groups)):
             (gname, gid, members) = groups[g]
             newmembers = {}
-            for m in members :
+            for m in members:
                 newmembers[m] = m
-            try :
+            try:
                 usernames = gidusers[gid]
-            except KeyError :
+            except KeyError:
                 pass
-            else :
-                for username in usernames :
-                    if not newmembers.has_key(username) :
+            else:
+                for username in usernames:
+                    if not newmembers.has_key(username):
                         newmembers[username] = username
-            for member in newmembers.keys() :
-                if not usersgid.has_key(member) :
+            for member in newmembers.keys():
+                if not usersgid.has_key(member):
                     del newmembers[member]
             membership[gname] = newmembers.keys()
         return membership
 
-    def runCommand(self, command, dryrun) :
+    def runCommand(self, command, dryrun):
         """Launches an external command."""
         self.printInfo("%s" % command)
-        if not dryrun :
+        if not dryrun:
             os.system(command)
 
-    def createPrinters(self, printers, dryrun=0) :
+    def createPrinters(self, printers, dryrun=0):
         """Creates all printers in PyKota's database."""
-        if printers :
+        if printers:
             args = open("/tmp/pkprinters.args", "w")
             args.write('--add\n--cups\n--skipexisting\n--description\n"printer created from pkturnkey"\n')
-            args.write("%s\n" % "\n".join(['"%s"' % p[0] for p in printers]))
+            args.write("{}\n".format("\n".join([f'"{p[0]}"' for p in printers])))
             args.close()
             self.runCommand("pkprinters --arguments /tmp/pkprinters.args", dryrun)
 
-    def createUsers(self, users, printers, dryrun=0) :
+    def createUsers(self, users, printers, dryrun=0):
         """Creates all users in PyKota's database."""
-        if users :
+        if users:
             args = open("/tmp/pkusers.users.args", "w")
             args.write('--add\n--skipexisting\n--description\n"user created from pkturnkey"\n--limitby\nnoquota\n')
-            args.write("%s\n" % "\n".join(['"%s"' % u for u in users]))
+            args.write("{}\n".format("\n".join([f'"{u}"' for u in users])))
             args.close()
             self.runCommand("pkusers --arguments /tmp/pkusers.users.args", dryrun)
 
             printersnames = [p[0] for p in printers]
             args = open("/tmp/edpykota.users.args", "w")
             args.write('--add\n--skipexisting\n--noquota\n--printer\n')
-            args.write("%s\n" % ",".join(['"%s"' % p for p in printersnames]))
-            args.write("%s\n" % "\n".join(['"%s"' % u for u in users]))
+            args.write("{}\n".format(",".join([f'"{p}"' for p in printersnames])))
+            args.write("{}\n".format("\n".join([f'"{u}"' for u in users])))
             args.close()
             self.runCommand("edpykota --arguments /tmp/edpykota.users.args", dryrun)
 
-    def createGroups(self, groups, printers, dryrun=0) :
+    def createGroups(self, groups, printers, dryrun=0):
         """Creates all groups in PyKota's database."""
-        if groups :
+        if groups:
             args = open("/tmp/pkusers.groups.args", "w")
-            args.write('--groups\n--add\n--skipexisting\n--description\n"group created from pkturnkey"\n--limitby\nnoquota\n')
-            args.write("%s\n" % "\n".join(['"%s"' % g for g in groups]))
+            args.write(
+                '--groups\n--add\n--skipexisting\n--description\n"group created from pkturnkey"\n--limitby\nnoquota\n')
+            args.write("{}\n".format("\n".join([f'"{g}"' for g in groups])))
             args.close()
             self.runCommand("pkusers --arguments /tmp/pkusers.groups.args", dryrun)
 
             printersnames = [p[0] for p in printers]
             args = open("/tmp/edpykota.groups.args", "w")
             args.write('--groups\n--add\n--skipexisting\n--noquota\n--printer\n')
-            args.write("%s\n" % ",".join(['"%s"' % p for p in printersnames]))
-            args.write("%s\n" % "\n".join(['"%s"' % g for g in groups]))
+            args.write("{}\n".format(",".join([f'"{p}"' for p in printersnames])))
+            args.write("{}\n".format("\n".join([f'"{g}"' for g in groups])))
             args.close()
             self.runCommand("edpykota --arguments /tmp/edpykota.groups.args", dryrun)
 
             revmembership = {}
-            for (groupname, usernames) in groups.items() :
-                for username in usernames :
+            for (groupname, usernames) in groups.items():
+                for username in usernames:
                     revmembership.setdefault(username, []).append(groupname)
             commands = []
-            for (username, groupnames) in revmembership.items() :
-                commands.append('pkusers --ingroups %s "%s"' \
-                    % (",".join(['"%s"' % g for g in groupnames]), username))
-            for command in commands :
+            for (username, groupnames) in revmembership.items():
+                commands.append('pkusers --ingroups {} "{}"' \
+                                .format(",".join([f'"{g}"' for g in groupnames]), username))
+            for command in commands:
                 self.runCommand(command, dryrun)
 
-    def supportsSNMP(self, hostname, community) :
+    def supportsSNMP(self, hostname, community):
         """Returns 1 if the printer accepts SNMP queries, else 0."""
         pageCounterOID = "1.3.6.1.2.1.43.10.2.1.4.1.1"  # SNMPv2-SMI::mib-2.43.10.2.1.4.1.1
-        try :
+        try:
             from pysnmp.entity.rfc3413.oneliner import cmdgen
-        except ImportError :
+        except ImportError:
             hasV4 = False
-            try :
+            try:
                 from pysnmp.asn1.encoding.ber.error import TypeMismatchError
                 from pysnmp.mapping.udp.role import Manager
                 from pysnmp.proto.api import alpha
-            except ImportError :
+            except ImportError:
                 sys.stderr.write("pysnmp doesn't seem to be installed. SNMP checks will be ignored !\n")
                 return 0
-        else :
+        else:
             hasV4 = True
 
-        if hasV4 :
-            def retrieveSNMPValues(hostname, community) :
+        if hasV4:
+            def retrieveSNMPValues(hostname, community):
                 """Retrieves a printer's internal page counter and status via SNMP."""
                 errorIndication, errorStatus, errorIndex, varBinds = \
-                     cmdgen.CommandGenerator().getCmd(cmdgen.CommunityData("pykota", community, 0), \
-                                                      cmdgen.UdpTransportTarget((hostname, 161)), \
-                                                      tuple([int(i) for i in pageCounterOID.split('.')]))
-                if errorIndication :
+                    cmdgen.CommandGenerator().getCmd(cmdgen.CommunityData("pykota", community, 0),
+                                                     cmdgen.UdpTransportTarget((hostname, 161)),
+                                                     tuple([int(i) for i in pageCounterOID.split('.')]))
+                if errorIndication:
                     raise "No SNMP !"
-                elif errorStatus :
+                elif errorStatus:
                     raise "No SNMP !"
-                else :
+                else:
                     self.SNMPOK = True
-        else :
-            def retrieveSNMPValues(hostname, community) :
+        else:
+            def retrieveSNMPValues(hostname, community):
                 """Retrieves a printer's internal page counter and status via SNMP."""
                 ver = alpha.protoVersions[alpha.protoVersionId1]
                 req = ver.Message()
@@ -260,11 +263,11 @@ class PKTurnKey(Tool) :
                 req.apiAlphaSetPdu(ver.GetRequestPdu())
                 req.apiAlphaGetPdu().apiAlphaSetVarBindList((pageCounterOID, ver.Null()))
                 tsp = Manager()
-                try :
-                    tsp.sendAndReceive(req.berEncode(), \
-                                       (hostname, 161), \
+                try:
+                    tsp.sendAndReceive(req.berEncode(),
+                                       (hostname, 161),
                                        (handleAnswer, req))
-                except :
+                except:
                     raise "No SNMP !"
                 tsp.close()
 
@@ -272,11 +275,11 @@ class PKTurnKey(Tool) :
                 """Decodes and handles the SNMP answer."""
                 ver = alpha.protoVersions[alpha.protoVersionId1]
                 rsp = ver.Message()
-                try :
+                try:
                     rsp.berDecode(wholemsg)
-                except TypeMismatchError, msg :
+                except TypeMismatchError as msg:
                     raise "No SNMP !"
-                else :
+                else:
                     if req.apiAlphaMatch(rsp):
                         errorStatus = rsp.apiAlphaGetPdu().apiAlphaGetErrorStatus()
                         if errorStatus:
@@ -285,209 +288,206 @@ class PKTurnKey(Tool) :
                             self.values = []
                             for varBind in rsp.apiAlphaGetPdu().apiAlphaGetVarBindList():
                                 self.values.append(varBind.apiAlphaGetOidVal()[1].rawAsn1Value)
-                            try :
+                            try:
                                 pagecounter = self.values[0]
-                            except :
+                            except:
                                 raise "No SNMP !"
-                            else :
+                            else:
                                 self.SNMPOK = 1
                                 return 1
 
         self.SNMPOK = 0
-        try :
+        try:
             retrieveSNMPValues(hostname, community)
-        except :
+        except:
             self.SNMPOK = 0
         return self.SNMPOK
 
-    def supportsPJL(self, hostname, port) :
+    def supportsPJL(self, hostname, port):
         """Returns 1 if the printer accepts PJL queries over TCP, else 0."""
-        def alarmHandler(signum, frame) :
+
+        def alarmHandler(signum, frame):
             raise "Timeout !"
 
         pjlsupport = 0
         signal.signal(signal.SIGALRM, alarmHandler)
-        signal.alarm(2) # wait at most 2 seconds
+        signal.alarm(2)  # wait at most 2 seconds
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try :
+        try:
             s.connect((hostname, port))
             s.send("\033%-12345X@PJL INFO STATUS\r\n\033%-12345X")
             answer = s.recv(1024)
-            if not answer.startswith("@PJL") :
+            if not answer.startswith(b"@PJL"):
                 raise "No PJL !"
-        except :
+        except:
             pass
-        else :
+        else:
             pjlsupport = 1
         s.close()
         signal.alarm(0)
         signal.signal(signal.SIGALRM, signal.SIG_IGN)
         return pjlsupport
 
-    def hintConfig(self, printers) :
+    def hintConfig(self, printers):
         """Gives some hints about what to put into pykota.conf"""
-        if not printers :
+        if not printers:
             return
-        sys.stderr.flush() # ensure outputs don't mix
-        print
-        print "--- CUT ---"
-        print "# Here are some lines that we suggest you add at the end"
-        print "# of the pykota.conf file. These lines gives possible"
-        print "# values for the way print jobs' size will be computed."
-        print "# NB : it is possible that a manual configuration gives"
-        print "# better results for you. As always, your mileage may vary."
-        print "#"
-        for (name, uri) in printers :
-            print "[%s]" % name
+        sys.stderr.flush()  # ensure outputs don't mix
+        print()
+        print("--- CUT ---")
+        print("# Here are some lines that we suggest you add at the end")
+        print("# of the pykota.conf file. These lines gives possible")
+        print("# values for the way print jobs' size will be computed.")
+        print("# NB : it is possible that a manual configuration gives")
+        print("# better results for you. As always, your mileage may vary.")
+        print("#")
+        for (name, uri) in printers:
+            print(f"[{name}]")
             accounter = "software()"
-            try :
+            try:
                 uri = uri.split("cupspykota:", 2)[-1]
-            except (ValueError, IndexError) :
+            except (ValueError, IndexError):
                 pass
-            else :
-                while uri and uri.startswith("/") :
+            else:
+                while uri and uri.startswith("/"):
                     uri = uri[1:]
-                try :
+                try:
                     (backend, destination) = uri.split(":", 1)
-                    if backend not in ("ipp", "http", "https", "lpd", "socket") :
+                    if backend not in ("ipp", "http", "https", "lpd", "socket"):
                         raise ValueError
-                except ValueError :
+                except ValueError:
                     pass
-                else :
-                    while destination.startswith("/") :
+                else:
+                    while destination.startswith("/"):
                         destination = destination[1:]
                     checkauth = destination.split("@", 1)
-                    if len(checkauth) == 2 :
+                    if len(checkauth) == 2:
                         destination = checkauth[1]
                     parts = destination.split("/")[0].split(":")
-                    if len(parts) == 2 :
+                    if len(parts) == 2:
                         (hostname, port) = parts
-                        try :
+                        try:
                             port = int(port)
-                        except ValueError :
+                        except ValueError:
                             port = 9100
-                    else :
+                    else:
                         (hostname, port) = parts[0], 9100
 
-                    if self.supportsSNMP(hostname, "public") :
+                    if self.supportsSNMP(hostname, "public"):
                         accounter = "hardware(snmp)"
-                    elif self.supportsPJL(hostname, 9100) :
+                    elif self.supportsPJL(hostname, 9100):
                         accounter = "hardware(pjl)"
-                    elif self.supportsPJL(hostname, 9101) :
+                    elif self.supportsPJL(hostname, 9101):
                         accounter = "hardware(pjl:9101)"
-                    elif self.supportsPJL(hostname, port) :
-                        accounter = "hardware(pjl:%s)" % port
+                    elif self.supportsPJL(hostname, port):
+                        accounter = f"hardware(pjl:{port})"
 
-            print "preaccounter : software()"
-            print "accounter : %s" % accounter
-            print
-        print "--- CUT ---"
+            print("preaccounter : software()")
+            print(f"accounter : {accounter}")
+            print()
+        print("--- CUT ---")
 
-    def main(self, names, options) :
+    def main(self, names, options):
         """Intializes PyKota's database."""
-        if not self.config.isAdmin :
-            raise PyKotaCommandLineError, "%s : %s" % (pwd.getpwuid(os.geteuid())[0], \
-                                   _("You're not allowed to use this command."))
+        if not self.config.isAdmin:
+            raise PyKotaCommandLineError("{} : {}".format(pwd.getpwuid(os.geteuid())[0],
+                                                          "You're not allowed to use this command."))
 
-        if not names :
+        if not names:
             names = ["*"]
 
-        self.printInfo(_("Please be patient..."))
+        self.printInfo("Please be patient...")
         dryrun = not options["force"]
-        if dryrun :
-            self.printInfo(_("Don't worry, the database WILL NOT BE MODIFIED."))
-        else :
-            self.printInfo(_("Please WORRY NOW, the database WILL BE MODIFIED."))
+        if dryrun:
+            self.printInfo("Don't worry, the database WILL NOT BE MODIFIED.")
+        else:
+            self.printInfo("Please WORRY NOW, the database WILL BE MODIFIED.")
 
-        if options["dousers"] :
-            if not options["uidmin"] :
-                self.printInfo(_("System users will have a print account as well !"), "warn")
+        if options["dousers"]:
+            if not options["uidmin"]:
+                self.printInfo("System users will have a print account as well !", "warn")
                 uidmin = 0
-            else :
-                try :
+            else:
+                try:
                     uidmin = int(options["uidmin"])
-                except :
-                    try :
+                except:
+                    try:
                         uidmin = pwd.getpwnam(options["uidmin"])[2]
-                    except KeyError, msg :
-                        raise PyKotaCommandLineError, _("Unknown username %s : %s") \
-                                                   % (options["uidmin"], msg)
+                    except KeyError as msg:
+                        raise PyKotaCommandLineError(f"Unknown username {options['uidmin']} : {msg}")
 
-            if not options["uidmax"] :
+            if not options["uidmax"]:
                 uidmax = sys.maxint
-            else :
-                try :
+            else:
+                try:
                     uidmax = int(options["uidmax"])
-                except :
-                    try :
+                except:
+                    try:
                         uidmax = pwd.getpwnam(options["uidmax"])[2]
-                    except KeyError, msg :
-                        raise PyKotaCommandLineError, _("Unknown username %s : %s") \
-                                                   % (options["uidmax"], msg)
+                    except KeyError as msg:
+                        raise PyKotaCommandLineError(f"Unknown username {options['uidmax']} : {msg}")
 
-            if uidmin > uidmax :
+            if uidmin > uidmax:
                 (uidmin, uidmax) = (uidmax, uidmin)
             users = self.listUsers(uidmin, uidmax)
-        else :
+        else:
             users = []
 
-        if options["dogroups"] :
-            if not options["gidmin"] :
-                self.printInfo(_("System groups will have a print account as well !"), "warn")
+        if options["dogroups"]:
+            if not options["gidmin"]:
+                self.printInfo("System groups will have a print account as well !", "warn")
                 gidmin = 0
-            else :
-                try :
+            else:
+                try:
                     gidmin = int(options["gidmin"])
-                except :
-                    try :
+                except:
+                    try:
                         gidmin = grp.getgrnam(options["gidmin"])[2]
-                    except KeyError, msg :
-                        raise PyKotaCommandLineError, _("Unknown groupname %s : %s") \
-                                                   % (options["gidmin"], msg)
+                    except KeyError as msg:
+                        raise PyKotaCommandLineError(f"Unknown groupname {options['gidmin']} : {msg}")
 
-            if not options["gidmax"] :
+            if not options["gidmax"]:
                 gidmax = sys.maxint
-            else :
-                try :
+            else:
+                try:
                     gidmax = int(options["gidmax"])
-                except :
-                    try :
+                except:
+                    try:
                         gidmax = grp.getgrnam(options["gidmax"])[2]
-                    except KeyError, msg :
-                        raise PyKotaCommandLineError, _("Unknown groupname %s : %s") \
-                                                   % (options["gidmax"], msg)
+                    except KeyError as msg:
+                        raise PyKotaCommandLineError(f"Unknown groupname {options['gidmax']} : {msg}")
 
-            if gidmin > gidmax :
+            if gidmin > gidmax:
                 (gidmin, gidmax) = (gidmax, gidmin)
             groups = self.listGroups(gidmin, gidmax, users)
-            if not options["emptygroups"] :
-                for (groupname, members) in groups.items() :
-                    if not members :
+            if not options["emptygroups"]:
+                for (groupname, members) in groups.items():
+                    if not members:
                         del groups[groupname]
-        else :
+        else:
             groups = []
 
         printers = self.listPrinters(names)
-        if printers :
+        if printers:
             self.createPrinters(printers, dryrun)
             self.createUsers([entry[0] for entry in users], printers, dryrun)
             self.createGroups(groups, printers, dryrun)
 
-        if dryrun :
-            self.printInfo(_("Simulation terminated."))
-        else :
-            self.printInfo(_("Database initialized !"))
+        if dryrun:
+            self.printInfo("Simulation terminated.")
+        else:
+            self.printInfo("Database initialized !")
 
-        if options["doconf"] :
+        if options["doconf"]:
             self.hintConfig(printers)
 
 
-if __name__ == "__main__" :
+if __name__ == "__main__":
     retcode = 0
-    try :
+    try:
         short_options = "hvdDefu:U:g:G:c"
-        long_options = ["help", "version", "dousers", "dogroups", \
-                        "emptygroups", "force", "uidmin=", "uidmax=", \
+        long_options = ["help", "version", "dousers", "dogroups",
+                        "emptygroups", "force", "uidmin=", "uidmax=",
                         "gidmin=", "gidmax=", "doconf"]
 
         # Initializes the command line tool
@@ -495,9 +495,9 @@ if __name__ == "__main__" :
         manager.deferredInit()
 
         # parse and checks the command line
-        (options, args) = manager.parseCommandline(sys.argv[1:], \
-                                                   short_options, \
-                                                   long_options, \
+        (options, args) = manager.parseCommandline(sys.argv[1:],
+                                                   short_options,
+                                                   long_options,
                                                    allownothing=1)
 
         # sets long options
@@ -513,45 +513,45 @@ if __name__ == "__main__" :
         options["gidmax"] = options["G"] or options["gidmax"]
         options["doconf"] = options["c"] or options["doconf"]
 
-        if options["uidmin"] or options["uidmax"] :
-            if not options["dousers"] :
-                manager.printInfo(_("The --uidmin or --uidmax command line option implies --dousers as well."), "warn")
+        if options["uidmin"] or options["uidmax"]:
+            if not options["dousers"]:
+                manager.printInfo("The --uidmin or --uidmax command line option implies --dousers as well.", "warn")
             options["dousers"] = 1
 
-        if options["gidmin"] or options["gidmax"] :
-            if not options["dogroups"] :
-                manager.printInfo(_("The --gidmin or --gidmax command line option implies --dogroups as well."), "warn")
+        if options["gidmin"] or options["gidmax"]:
+            if not options["dogroups"]:
+                manager.printInfo("The --gidmin or --gidmax command line option implies --dogroups as well.", "warn")
             options["dogroups"] = 1
 
-        if options["dogroups"] :
-            if not options["dousers"] :
-                manager.printInfo(_("The --dogroups command line option implies --dousers as well."), "warn")
+        if options["dogroups"]:
+            if not options["dousers"]:
+                manager.printInfo("The --dogroups command line option implies --dousers as well.", "warn")
             options["dousers"] = 1
 
-        if options["help"] :
+        if options["help"]:
             manager.display_usage_and_quit()
-        elif options["version"] :
+        elif options["version"]:
             manager.display_version_and_quit()
-        else :
+        else:
             retcode = manager.main(args, options)
-    except KeyboardInterrupt :
+    except KeyboardInterrupt:
         sys.stderr.write("\nInterrupted with Ctrl+C !\n")
         retcode = -3
-    except PyKotaCommandLineError, msg :
-        sys.stderr.write("%s : %s\n" % (sys.argv[0], msg))
+    except PyKotaCommandLineError as msg:
+        sys.stderr.write(f"{sys.argv[0]} : {msg}\n")
         retcode = -2
-    except SystemExit :
+    except SystemExit:
         pass
-    except :
-        try :
+    except:
+        try:
             manager.crashed("pkturnkey failed")
-        except :
+        except:
             crashed("pkturnkey failed")
         retcode = -1
 
-    try :
+    try:
         manager.storage.close()
-    except (TypeError, NameError, AttributeError) :
+    except (TypeError, NameError, AttributeError):
         pass
 
     sys.exit(retcode)

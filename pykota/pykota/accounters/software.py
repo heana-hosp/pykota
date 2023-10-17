@@ -23,110 +23,119 @@
 #
 
 import os
-import popen2
+import signal
+import subprocess
+
+# import popen2
 from pykota.accounter import AccounterBase, PyKotaAccounterError
 
-class Accounter(AccounterBase) :
-    def computeJobSize(self) :    
+
+class Accounter(AccounterBase):
+    def compute_job_size(self):
         """Feeds an external command with our datas to let it compute the job size, and return its value."""
         if (not self.isPreAccounter) and \
-            (self.filter.accounter.arguments == self.filter.preaccounter.arguments) :
+                (self.filter.accounter.arguments == self.filter.preaccounter.arguments):
             # if precomputing has been done and both accounter and preaccounter are
             # configured the same, no need to launch a second pass since we already
             # know the result.
             self.filter.logdebug("Precomputing pass told us that job is %s pages long." % self.filter.softwareJobSize)
-            return self.filter.softwareJobSize   # Optimize : already computed !
-            
-        if self.arguments :
+            return self.filter.softwareJobSize  # Optimize : already computed !
+
+        if self.arguments:
             self.filter.logdebug("Using external script %s to compute job's size." % self.arguments)
             return self.withExternalScript()
-        else :    
+        else:
             self.filter.logdebug("Using internal parser to compute job's size.")
             return self.withInternalParser()
-        
-    def withInternalParser(self) :    
+
+    def withInternalParser(self):
         """Does software accounting through an external script."""
         jobsize = 0
-        if self.filter.JobSizeBytes :
-            try :
+        if self.filter.JobSizeBytes:
+            try:
                 from pkpgpdls import analyzer, pdlparser
-            except ImportError :    
-                self.filter.printInfo("pkpgcounter is now distributed separately, please grab it from http://www.pykota.com/software/pkpgcounter", "error")
+            except ImportError:
+                self.filter.printInfo(
+                    "pkpgcounter is now distributed separately, please grab it from http://www.pykota.com/software/pkpgcounter",
+                    "error")
                 self.filter.printInfo("Precomputed job size will be forced to 0 pages.", "error")
-            else :     
+            else:
                 infile = open(self.filter.DataFile, "rb")
-                try :
+                try:
                     parser = analyzer.PDLAnalyzer(infile)
-                    jobsize = parser.getJobSize()
-                except pdlparser.PDLParserError, msg :    
+                    jobsize = parser.get_job_size()
+                except pdlparser.PDLParserError as msg:
                     # Here we just log the failure, but
                     # we finally ignore it and return 0 since this
                     # computation is just an indication of what the
                     # job's size MAY be.
-                    self.filter.printInfo(_("Unable to precompute the job's size with the generic PDL analyzer : %s") % msg, "warn")
-                else :    
-                    if self.filter.InputFile is not None :
+                    self.filter.printInfo(f"Unable to precompute the job's size with the generic PDL analyzer : {msg}",
+                                          "warn")
+                else:
+                    if self.filter.InputFile is not None:
                         # when a filename is passed as an argument, the backend 
                         # must generate the correct number of copies.
                         jobsize *= self.filter.Copies
-                infile.close()        
-        return jobsize        
-                
-    def withExternalScript(self) :    
+                infile.close()
+        return jobsize
+
+    def withExternalScript(self):
         """Does software accounting through an external script."""
-        self.filter.printInfo(_("Launching SOFTWARE(%s)...") % self.arguments)
-        MEGABYTE = 1024*1024
+        self.filter.printInfo(f"Launching SOFTWARE({self.arguments})...")
+        MEGABYTE = 1024 * 1024
         infile = open(self.filter.DataFile, "rb")
-        child = popen2.Popen4(self.arguments)
-        try :
-            data = infile.read(MEGABYTE)    
-            while data :
-                child.tochild.write(data)
+        # child = popen2.Popen4(self.arguments)
+        child = subprocess.Popen([self.arguments, self.filter.DataFile], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        try:
+            data = infile.read(MEGABYTE)
+            while data:
                 data = infile.read(MEGABYTE)
-            child.tochild.flush()
-            child.tochild.close()    
-        except (IOError, OSError), msg :    
-            msg = "%s : %s" % (self.arguments, msg) 
-            self.filter.printInfo(_("Unable to compute job size with accounter %s") % msg)
+        except (IOError, OSError) as msg:
+            msg = f"{self.arguments} : {msg}"
+            self.filter.printInfo(f"Unable to compute job size with accounter {msg}")
+
         infile.close()
         pagecounter = None
-        try :
-            answer = child.fromchild.read()
-        except (IOError, OSError), msg :    
-            msg = "%s : %s" % (self.arguments, msg) 
-            self.filter.printInfo(_("Unable to compute job size with accounter %s") % msg)
-        else :    
-            lines = [l.strip() for l in answer.split("\n")]
-            for i in range(len(lines)) : 
-                try :
+
+        try:
+            answer, stderr = child.communicate()
+        except (IOError, OSError) as msg:
+            msg = f"{self.arguments} : {msg}"
+            self.filter.printInfo(f"Unable to compute job size with accounter {msg}")
+        else:
+            lines = [l.strip() for l in answer.split(b'\n')]
+            for i in range(len(lines)):
+                try:
                     pagecounter = int(lines[i])
-                except (AttributeError, ValueError) :
-                    self.filter.printInfo(_("Line [%s] skipped in accounter's output. Trying again...") % lines[i])
-                else :    
+                except (AttributeError, ValueError):
+                    self.filter.printInfo(f"Line [{lines[i]}] skipped in accounter's output. Trying again...")
+                else:
                     break
-        child.fromchild.close()
-        
-        try :
+
+        child.kill()
+
+        try:
             status = child.wait()
-        except OSError, msg :    
-            self.filter.printInfo(_("Problem while waiting for software accounter pid %s to exit : %s") % (child.pid, msg))
-        else :    
-            if os.WIFEXITED(status) :
+        except OSError as msg:
+            self.filter.printInfo(f"Problem while waiting for software accounter pid {child.pid} to exit : {msg}")
+        else:
+            if os.WIFEXITED(status):
                 status = os.WEXITSTATUS(status)
-            self.filter.printInfo(_("Software accounter %s exit code is %s") % (self.arguments, str(status)))
-            
-        if pagecounter is None :    
-            message = _("Unable to compute job size with accounter %s") % self.arguments
-            if self.onerror == "CONTINUE" :
+            self.filter.printInfo(f"Software accounter {self.arguments} exit code is {str(status)}")
+
+        if pagecounter is None:
+            message = f"Unable to compute job size with accounter {self.arguments}"
+            if self.onerror == "CONTINUE":
                 self.filter.printInfo(message, "error")
-            else :
-                raise PyKotaAccounterError, message
-        self.filter.logdebug("Software accounter %s said job is %s pages long." % (self.arguments, repr(pagecounter)))
-            
-        pagecounter = pagecounter or 0    
-        if self.filter.InputFile is not None :
+            else:
+                raise PyKotaAccounterError(message)
+        self.filter.logdebug(f"Software accounter {self.arguments} said job is {repr(pagecounter)} pages long.")
+
+        pagecounter = pagecounter or 0
+        if self.filter.InputFile is not None:
             # when a filename is passed as an argument, the backend 
             # must generate the correct number of copies.
             pagecounter *= self.filter.Copies
-                        
+
         return pagecounter

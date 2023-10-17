@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: ISO-8859-15 -*-
 
 # PyKota Print Quota Data Dumper
@@ -148,24 +148,21 @@ Examples :
   Dumps all jobs printed between March 1st 2005 at midnight and
   July 30th 2005 at 23 hours 46 minutes and 15 secondes included.
 """)
-        
-if __name__ == "__main__" : 
+
+if __name__ == "__main__":
     retcode = 0
-    try :
-        defaults = { \
-                     "format" : "csv", \
-                     "output" : "-", \
-                   }
+    try:
+        defaults = {"format": "csv", "output": "-", }
         short_options = "vhd:f:o:sO:"
         long_options = ["help", "version", "data=", "format=", "output=", "sum", "orderby="]
-        
+
         # Initializes the command line tool
         dumper = DumPyKota(doc=__doc__)
         dumper.deferredInit()
-        
+
         # parse and checks the command line
         (options, args) = dumper.parseCommandline(sys.argv[1:], short_options, long_options, allownothing=1)
-        
+
         # sets long options
         options["help"] = options["h"] or options["help"]
         options["version"] = options["v"] or options["version"]
@@ -174,33 +171,33 @@ if __name__ == "__main__" :
         options["output"] = options["o"] or options["output"] or defaults["output"]
         options["sum"] = options["s"] or options["sum"]
         options["orderby"] = options["O"] or options["orderby"]
-        
-        if options["help"] :
+
+        if options["help"]:
             dumper.display_usage_and_quit()
-        elif options["version"] :
+        elif options["version"]:
             dumper.display_version_and_quit()
-        elif options["data"] is None :    
-            raise PyKotaCommandLineError, _("The -d | --data command line option is mandatory, see help.")
-        else :
+        elif options["data"] is None:
+            raise PyKotaCommandLineError("The -d | --data command line option is mandatory, see help.")
+        else:
             retcode = dumper.main(args, options)
-    except KeyboardInterrupt :        
+    except KeyboardInterrupt:
         sys.stderr.write("\nInterrupted with Ctrl+C !\n")
         retcode = -3
-    except PyKotaCommandLineError, msg :    
-        sys.stderr.write("%s : %s\n" % (sys.argv[0], msg))
+    except PyKotaCommandLineError as msg:
+        sys.stderr.write(f"{sys.argv[0]} : {msg}\n")
         retcode = -2
-    except SystemExit :        
+    except SystemExit:
         pass
-    except :
-        try :
+    except:
+        try:
             dumper.crashed("dumpykota failed")
-        except :    
+        except:
             crashed("dumpykota failed")
         retcode = -1
 
-    try :
+    try:
         dumper.storage.close()
-    except (TypeError, NameError, AttributeError) :    
+    except (TypeError, NameError, AttributeError):
         pass
-        
-    sys.exit(retcode)    
+
+    sys.exit(retcode)

@@ -1,6 +1,6 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: ISO-8859-15 -*-
-
+import subprocess
 # An email gateway for PyKota
 #
 # PyKota - Print Quotas for CUPS and LPRng
@@ -26,15 +26,15 @@
 
 import sys
 import os
-import popen2
+# import popen2
 import smtplib
 import email
-from email.MIMEText import MIMEText
-from email.Header import Header
-import email.Utils
+from email.mime.text import MIMEText
+from email.header import Header
+import email.utils
 
 from pykota.tool import PyKotaTool, PyKotaCommandLineError, crashed, N_
-    
+
 __doc__ = N_("""pkmail v%(__version__)s (c) %(__years__)s %(__author__)s
 
 Email gateway for PyKota.
@@ -75,113 +75,118 @@ options :
   
   Use at your own risk !
 """)
-        
-        
-class PKMail(PyKotaTool) :        
+
+
+class PKMail(PyKotaTool):
     """A class for pkmail."""
-    def main(self, files, options) :
+
+    def main(self, files, options):
         """Accepts commands passed in an email message."""
         data = sys.stdin.read()
         message = email.message_from_string(data)
         useremail = message["From"]
         whoami = message["To"]
         cmdargs = message["Subject"].split()
-        try :
+        try:
             (command, arguments) = (cmdargs[0].capitalize(), cmdargs[1:])
-        except IndexError :    
-            raise PyKotaCommandLineError, "No command found !"
-        
+        except IndexError:
+            raise PyKotaCommandLineError("No command found !")
+
         badchars = """/<>&"'#!%*$,;\\"""
         cheatmeonce = 0
-        for c in "".join(arguments) :
-            if c in badchars :
+        for c in "".join(arguments):
+            if c in badchars:
                 cheatmeonce = 1
-            
-        if cheatmeonce :    
-            self.printInfo("Possible intruder at %s : %s" % (useremail, str(arguments)), "warn")
+
+        if cheatmeonce:
+            self.printInfo(f"Possible intruder at {useremail} : {str(arguments)}", "warn")
             result = "Either you mistyped your command, or you're a bad guy !"
-        else :
-            self.logdebug("Launching internal command '%s' with arguments %s" % (command, str(arguments)))
+        else:
+            self.logdebug(f"Launching internal command '{command}' with arguments {str(arguments)}")
             cmdfunc = getattr(self, "cmd%s" % command, self.cmdDefault)
             result = cmdfunc(arguments)
-        
+
         self.logdebug("Sending answer to : %s" % useremail)
         emailmsg = MIMEText(result, _charset=self.charset)
-        emailmsg["Subject"] = Header(_("Result of your commands"), charset=self.charset)
+        emailmsg["Subject"] = Header("Result of your commands", charset=self.charset)
         emailmsg["From"] = whoami
         emailmsg["To"] = useremail
-        emailmsg["Date"] = email.Utils.formatdate(localtime=True)
+        emailmsg["Date"] = email.utils.formatdate(localtime=True)
         server = smtplib.SMTP(self.smtpserver)
-        server.sendmail(whoami, [ useremail ], emailmsg.as_string())
+        server.sendmail(whoami, [useremail], emailmsg.as_string())
         server.quit()
-        self.logdebug("Answer sent to : %s" % useremail)
-        
+        self.logdebug(f"Answer sent to : {useremail}")
+
         return 0
-        
-    def runCommand(self, cmd) :    
+
+    def runCommand(self, cmd):
         """Executes a command."""
-        self.logdebug("Launching : '%s'" % cmd)
-        os.environ["PATH"] = "%s:/bin:/usr/bin:/usr/local/bin:/opt/bin:/sbin:/usr/sbin" % os.environ.get("PATH", "")
-        child = popen2.Popen3(cmd)
-        child.tochild.close()
-        result = child.fromchild.read()
-        status = child.wait()
-        if os.WIFEXITED(status) :
+        self.logdebug(f"Launching : '{cmd}'")
+        os.environ["PATH"] = f"{os.environ.get('PATH', '')}:/bin:/usr/bin:/usr/local/bin:/opt/bin:/sbin:/usr/sbin"
+        #child = popen2.Popen3(cmd)
+        child = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 stdin=subprocess.PIPE)
+        #child.tochild.close()
+        #result = child.fromchild.read()
+        result = child.communicate()[0]
+        status = child.returncode
+        if os.WIFEXITED(status):
             status = os.WEXITSTATUS(status)
-        self.logdebug("'%s' exited with status %s" % (cmd, status))
+        self.logdebug(f"'{cmd}' exited with status {status}")
         return result
-        
-    def cmdDefault(self, arguments) :    
+
+    def cmdDefault(self, arguments):
         """Default command : sends an 'unknown command' message."""
         return "Unknown command."
-        
-    def cmdReport(self, args) :    
+
+    def cmdReport(self, args):
         """Generates a print quota report."""
-        return self.runCommand("repykota %s" % ' '.join([ '"%s"' % a for a in args ]))
-            
-if __name__ == "__main__" : 
+        return self.runCommand("repykota {}".format(' '.join([f'"{a}"' for a in args])))
+
+
+if __name__ == "__main__":
     retcode = 0
-    try :
-        defaults = { \
-                   }
+    try:
+        defaults = {
+        }
         short_options = "vh"
         long_options = ["help", "version"]
-        
+
         # Initializes the command line tool
         mailparser = PKMail(doc=__doc__)
         mailparser.deferredInit()
-        
+
         # parse and checks the command line
         (options, args) = mailparser.parseCommandline(sys.argv[1:], short_options, long_options, allownothing=1)
-        
+
         # sets long options
         options["help"] = options["h"] or options["help"]
         options["version"] = options["v"] or options["version"]
-        
-        if options["help"] :
+
+        if options["help"]:
             mailparser.display_usage_and_quit()
-        elif options["version"] :
+        elif options["version"]:
             mailparser.display_version_and_quit()
-        else :
+        else:
             retcode = mailparser.main(args, options)
-    except KeyboardInterrupt :        
+    except KeyboardInterrupt:
         sys.stderr.write("\nInterrupted with Ctrl+C !\n")
         retcode = -3
-    except PyKotaCommandLineError, msg :    
-        sys.stderr.write("%s : %s\n" % (sys.argv[0], msg))
+    except PyKotaCommandLineError as msg:
+        sys.stderr.write(f"{sys.argv[0]} : {msg}\n")
         retcode = -2
-    except SystemExit :        
+    except SystemExit:
         pass
-    except :
-        try :
+    except:
+        try:
             mailparser.crashed("pkmail failed")
-        except :    
+        except:
             crashed("pkmail failed")
         retcode = -1
 
-    try :
+    try:
         mailparser.storage.close()
-    except (TypeError, NameError, AttributeError) :    
+    except (TypeError, NameError, AttributeError):
         pass
-        
-    sys.exit(retcode)    
+
+    sys.exit(retcode)

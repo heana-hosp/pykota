@@ -36,8 +36,8 @@ CREATE DATABASE pykota WITH ENCODING='UTF-8';
 -- Create the print quota database users
 -- NOTE: Change the password values to the passwords you would like.
 -- 
-CREATE USER pykotauser WITH UNENCRYPTED PASSWORD 'readonlypw' NOCREATEDB NOCREATEUSER;
-CREATE USER pykotaadmin WITH UNENCRYPTED PASSWORD 'readwritepw' NOCREATEDB NOCREATEUSER;
+CREATE USER pykotauser WITH ENCRYPTED PASSWORD 'readonlypw' NOCREATEDB NOSUPERUSER;
+CREATE USER pykotaadmin WITH ENCRYPTED PASSWORD 'readwritepw' NOCREATEDB NOSUPERUSER;
 
 -- 
 -- Now connect to the new database

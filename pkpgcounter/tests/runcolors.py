@@ -1,23 +1,23 @@
 #! /usr/bin/env python
-# -*- coding: ISO-8859-15 -*-
+# -*- coding: utf-8 -*-
 #
 # pkpgcounter : a generic Page Description Language parser
 #
-# (c) 2003, 2004, 2005, 2006, 2007 Jerome Alet <alet@librelogiciel.com>
+# (c) 2003-2019 Jerome Alet <alet@librelogiciel.com>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# $Id: runcolors.py 282 2007-09-10 20:47:40Z jerome $
+# $Id: runcolors.py 3578 2019-02-14 08:46:15Z jerome $
 #
 #
 
@@ -51,7 +51,7 @@ To check by yourself :
         echo "Colorspace : $cspace" ;
         pkpgcounter --colorspace $cspace colors.pdf ;
         echo ;
-    done    
+    done
 
 Please report any problem to : alet@librelogiciel.com
 """
@@ -114,7 +114,7 @@ try :
     from reportlab.lib import pagesizes
     from reportlab.lib.units import cm
     from reportlab.pdfgen import canvas
-except ImportError :    
+except ImportError :
     sys.stderr.write("Please download and install ReportLab\n\tfrom http://www.reportlab.org\n")
     sys.exit(-1)
 
@@ -123,33 +123,33 @@ if __name__ == "__main__" :
     (width, height) = pagesizes.A4
     xbase = 2*cm
     ybase = height - 2*cm
-    
+
     # First we output the explanations on the first page.
     canv.setFont("Courier", 14)
     for line in __doc__.split("\n") :
         canv.drawString(xbase, ybase, line)
         ybase -= 18
     canv.showPage()
-    
+
     # Then we output each page
     for color in (colors.Color(1, 0, 0),        # Red
                   colors.Color(0, 1, 0),        # Green
                   colors.Color(0, 0, 1)) :      # Blue
-        canv.setStrokeColorRGB(*color.rgb())          
-        canv.setFillColorRGB(*color.rgb())          
+        canv.setStrokeColorRGB(*color.rgb())
+        canv.setFillColorRGB(*color.rgb())
         canv.rect(0, 0, width, height, fill=1)
         canv.showPage()
-        
+
     for color in (colors.CMYKColor(1, 0, 0, 0), # Cyan
                   colors.CMYKColor(0, 1, 0, 0), # Magenta
                   colors.CMYKColor(0, 0, 1, 0), # Yellow
                   colors.CMYKColor(0, 0, 0, 1), # Black
                   colors.CMYKColor(0, 0, 0, 0)) : # White
-        canv.setStrokeColorCMYK(*color.cmyk())          
-        canv.setFillColorCMYK(*color.cmyk())          
+        canv.setStrokeColorCMYK(*color.cmyk())
+        canv.setFillColorCMYK(*color.cmyk())
         canv.rect(0, 0, width, height, fill=1)
         canv.showPage()
-        
+
     # Finally outputs the expected results.
     canv.setFont("Helvetica-Bold", 16)
     canv.drawCentredString(width/2.0, height-1.5*cm, "Expected Results :")
@@ -159,5 +159,5 @@ if __name__ == "__main__" :
         canv.drawString(xbase, ybase, line)
         ybase -= 14
     canv.showPage()
-        
-    canv.save()        
+
+    canv.save()

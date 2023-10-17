@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 # -*- coding: ISO-8859-15 -*-
 
 # PyKota Print Quotes generator
@@ -28,13 +28,13 @@ import sys
 import os
 import cgi
 import urllib
-import cStringIO
+# import cStringIO
+from io import StringIO
 
 from pykota import version
 from pykota.tool import PyKotaTool, PyKotaToolError
 from pykota.cgifuncs import getLanguagePreference, getCharsetPreference
 from pkpgpdls import analyzer, pdlparser
-    
 
 header = """Content-type: text/html;charset=%s
 
@@ -66,7 +66,7 @@ header = """Content-type: text/html;charset=%s
             </td>
           </tr>
         </table>"""
-    
+
 footer = """
         <table>
           <tr>
@@ -89,112 +89,117 @@ footer = """
       </font>
     </p>
   </body>
-</html>"""  
+</html>"""
 
-class PyKotMeGUI(PyKotaTool) :
+
+class PyKotMeGUI(PyKotaTool):
     """PyKota Quote's Generator GUI"""
-    def guiDisplay(self) :
+
+    def guiDisplay(self):
         """Displays the administrative interface."""
         global header, footer
-        print header % (self.charset, _("PyKota Quotes"), \
-                        self.language, self.charset, \
-                        self.config.getLogoLink(), \
-                        self.config.getLogoURL(), version.__version__, \
-                        self.config.getLogoLink(), \
-                        version.__version__, _("PyKota Quotes"), \
-                        _("Quote"))
-        print self.body
-        print footer % (_("Quote"), version.__doc__, version.__years__, version.__author__, version.__gplblurb__)
-        
-    def error(self, message) :
+        print(header % (self.charset, "PyKota Quotes",
+                        self.language, self.charset,
+                        self.config.get_logo_link(),
+                        self.config.get_logo_url(), version.__version__,
+                        self.config.get_logo_link(),
+                        version.__version__, "PyKota Quotes",
+                        "Quote"))
+        print(self.body)
+        print(footer % ("Quote", version.__doc__, version.__years__, version.__author__, version.__gplblurb__))
+
+    def error(self, message):
         """Adds an error message to the GUI's body."""
-        if message :
-            self.body = '<p><font color="red">%s</font></p>\n%s' % (message, self.body)
-        
-    def htmlListPrinters(self, selected=[], mask="*") :    
+        if message:
+            self.body = f'<p><font color="red">{message}</font></p>\n{self.body}'
+
+    def htmlListPrinters(self, selected=[], mask="*"):
         """Displays the printers multiple selection list."""
         printers = self.storage.getMatchingPrinters(mask)
         selectednames = [p.Name for p in selected]
-        message = '<table><tr><td valign="top">%s :</td><td valign="top"><select name="printers" multiple="multiple">' % _("Printer")
-        for printer in printers :
-            if printer.Name in selectednames :
-                message += '<option value="%s" selected="selected">%s (%s)</option>' % (printer.Name, printer.Name, printer.Description)
-            else :
-                message += '<option value="%s">%s (%s)</option>' % (printer.Name, printer.Name, printer.Description)
+        message = f'<table><tr><td valign="top">{"Printer"} :</td><td valign="top"><select name="printers" multiple="multiple">'
+        for printer in printers:
+            if printer.Name in selectednames:
+                message += f'<option value="{printer.Name}" selected="selected">{printer.Name} ({printer.Description})</option>'
+            else:
+                message += f'<option value="{printer.Name}">{printer.Name} ({printer.Description})</option>'
         message += '</select></td></tr></table>'
         return message
-        
-    def guiAction(self) :
+
+    def guiAction(self):
         """Main function"""
         printers = inputfile = None
-        self.body = "<p>%s</p>\n" % _("Please click on the above button")
-        if self.form.has_key("report") :
-            if self.form.has_key("printers") :
+        self.body = f"<p>{'Please click on the above button'}</p>\n"
+        if self.form.has_key("report"):
+            if self.form.has_key("printers"):
                 printersfield = self.form["printers"]
-                if type(printersfield) != type([]) :
-                    printersfield = [ printersfield ]
+                if type(printersfield) != type([]):
+                    printersfield = [printersfield]
                 printers = [self.storage.getPrinter(p.value) for p in printersfield]
-            else :    
+            else:
                 printers = self.storage.getMatchingPrinters("*")
-            if self.form.has_key("inputfile") :    
+            if self.form.has_key("inputfile"):
                 inputfile = self.form["inputfile"].value
-                
-        if os.environ.get("REMOTE_USER") is not None :        
-            self.body += self.htmlListPrinters(printers or [])            
+
+        if os.environ.get("REMOTE_USER") is not None:
+            self.body += self.htmlListPrinters(printers or [])
             self.body += "<br />"
-        self.body += _("Filename") + " : "
+        self.body += "Filename" + " : "
         self.body += '<input type="file" size="64" name="inputfile" />'
         self.body += "<br />"
-        if inputfile :
-            try :
-                parser = analyzer.PDLAnalyzer(cStringIO.StringIO(inputfile))
-                jobsize = parser.getJobSize()
-            except pdlparser.PDLParserError, msg :    
-                self.body += '<p><font color="red">%s</font></p>' % msg
-                jobsize = 0 # unknown file format ?
-            else :    
-                self.body += "<p>%s</p>" % (_("Job size : %i pages") % jobsize)
-                
+        if inputfile:
+            try:
+                parser = analyzer.PDLAnalyzer(StringIO(inputfile))
+                jobsize = parser.get_job_size()
+            except pdlparser.PDLParserError as msg:
+                self.body += f'<p><font color="red">{msg}</font></p>'
+                jobsize = 0  # unknown file format ?
+            else:
+                self.body += f"<p>{f'Job size : {jobsize:d} pages'}</p>"
+
             remuser = os.environ.get("REMOTE_USER")
             # special hack to accomodate mod_auth_ldap Apache module
-            try :
+            try:
                 remuser = remuser.split("=")[1].split(",")[0]
-            except :    
+            except:
                 pass
-            if not remuser :    
-                self.body += "<p>%s</p>" % _("The exact cost of a print job can only be determined for a particular user. Please retry while logged-in.")
-            else :    
-                try :    
+            if not remuser:
+                self.body += f"<p>{'The exact cost of a print job can only be determined for a particular user. Please retry while logged-in.'}</p>"
+            else:
+                try:
                     user = self.storage.getUser(remuser)
-                    if user.Exists :
-                        if user.LimitBy == "noprint" :
-                            self.body += "<p>%s</p>" % _("Your account settings forbid you to print at this time.")
-                        else :    
-                            for printer in printers :
+                    if user.Exists:
+                        if user.LimitBy == "noprint":
+                            self.body += f"<p>{'Your account settings forbid you to print at this time.'}</p>"
+                        else:
+                            for printer in printers:
                                 upquota = self.storage.getUserPQuota(user, printer)
-                                if upquota.Exists :
-                                    if printer.MaxJobSize and (jobsize > printer.MaxJobSize) :
-                                        msg = _("You are not allowed to print so many pages on printer %s at this time.") % printer.Name
-                                    else :    
+                                if upquota.Exists:
+                                    if printer.MaxJobSize and (jobsize > printer.MaxJobSize):
+                                        msg = f"You are not allowed to print so many pages on printer {printer.Name} at this time."
+                                    else:
                                         cost = upquota.computeJobPrice(jobsize)
-                                        msg = _("Cost on printer %s : %.2f") % (printer.Name, cost)
-                                        if printer.PassThrough :
-                                            msg = "%s (%s)" % (msg, _("won't be charged, printer is in passthrough mode"))
-                                        elif user.LimitBy == "nochange" :    
-                                            msg = "%s (%s)" % (msg, _("won't be charged, your account is immutable"))
-                                    self.body += "<p>%s</p>" % msg
-                except :
-                    self.body += '<p><font color="red">%s</font></p>' % self.crashed("CGI Error").replace("\n", "<br />")
-            
-if __name__ == "__main__" :
+                                        msg = f"Cost on printer {printer.Name} : {cost:.2f}"
+                                        if printer.PassThrough:
+                                            msg = "{} ({})".format(msg,
+                                                                   "won't be charged, printer is in passthrough mode")
+                                        elif user.LimitBy == "nochange":
+                                            msg = "{} ({})".format(msg, "won't be charged, your account is immutable")
+                                    self.body += f"<p>{msg}</p>"
+                except:
+                    self.body += '<p><font color="red">{}</font></p>'.format(self.crashed("CGI Error").replace("\n",
+                                                                                                               "<br />"))
+
+
+if __name__ == "__main__":
     admin = PyKotMeGUI(lang=getLanguagePreference(), charset=getCharsetPreference())
     admin.deferredInit()
     admin.form = cgi.FieldStorage()
     admin.guiAction()
     admin.guiDisplay()
-    try :
+    try:
         admin.storage.close()
-    except (TypeError, NameError, AttributeError) :    
+    except (TypeError, NameError, AttributeError):
         pass
-        
+
     sys.exit(0)

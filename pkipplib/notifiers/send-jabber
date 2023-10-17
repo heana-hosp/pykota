@@ -1,0 +1,106 @@
+#!/usr/bin/env python3
+
+# (c) 2010 Allison Jones <ajones6@unl.edu>
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#
+# In addition to pkipplib, it also relies on the python-xmpp module
+#
+# $Id$
+
+import sys
+import os
+import fcntl
+from pkipplib import pkipplib
+import xmpp
+
+if __name__ == "__main__" :
+    #
+    #  Set some variables for later
+    #  You may or may not have to use an authenticated call, depending on your
+    #  cups conf file.  If your notifier fails, there's a good chance you
+    #  need to use the authenticated call to pkipplib.CUPS
+    #
+    #  Also, this assumes a 1:1 match between usernames on the print server
+    #  and usernames on the jabber server.
+
+    cups_server = "https://cups.example.com:631"
+    cups_username = "username"
+    cups_password = "password"
+
+    jabber_server = "jabber.example.com"
+    jabber_username = "username"
+    jabber_password = "password"
+
+    # First thing we do is put stdin in non-blocking mode.
+    fd = sys.stdin.fileno()
+    fcntl.fcntl(sys.stdin.fileno(), fcntl.F_SETFL,
+                    fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK)
+
+    # then we read the notification CUPS sent us to our stdin
+    notification = pkipplib.IPPRequest(sys.stdin.read())
+
+    # now we parse it
+    notification.parse()
+    event = notification.event_notification["notify-subscribed-event"][0][1]
+
+    # Get the printername, jobnumber, and jobname.  The username unfortunately
+    # isn't in this piece
+    if event in ("job-completed") :
+        printername = notification.event_notification["printer-name"][0][1]
+        jobnumber = notification.event_notification["notify-job-id"][0][1]
+        jobname = notification.event_notification["job-name"][0][1]
+
+    # In the next bit, we get more information from the job which is stored in
+    # the cups spool directory, as long as you are retaining job information
+    # This is where we can get the username
+    cups = pkipplib.CUPS(url=cups_server, \
+                       username=cups_username, \
+                       password=cups_password)
+
+    answer = cups.getJobAttributes(jobnumber)
+    username  = answer.job["job-originating-user-name"][0][1]
+
+    # Get the location and info about the printer.  Useful in an office that
+    # has mounds of printers
+
+    request = cups.newRequest(pkipplib.IPP_GET_PRINTER_ATTRIBUTES)
+    request.operation["printer-uri"] = ("uri",
+         cups.identifierToURI("printers", printername))
+    for attribute in ("printer-uri-supported", "printer-type", "member-uris") :
+        request.operation["requested-attributes"] = ("nameWithoutLanguage", attribute)
+    answer = cups.doRequest(request)
+    printerLocation = answer.printer["printer-location"][0][1]
+    printerInfo = answer.printer["printer-info"][0][1]
+
+    # You might consider adding verbiage to indicate it's an automatically
+    # generated message. Otherwise, it might take some people by surprise.
+
+    jabberMessage = "\nYour print job: " + jobname + "\nSuccessfully printed to " + printerInfo + "\nLocation: " + printerLocation
+    tojid = username + "@" + jabber_server
+    jidparams={}
+    jidparams["jid"] = jabber_username + "@" + jabber_server
+    jid = xmpp.protocol.JID(jidparams['jid'])
+    jidparams["password"] = jabber_password
+    cl=xmpp.Client(jid.getDomain(),debug=[])
+    con=cl.connect()
+    if not con:
+       print ('could not connect!')
+       sys.exit()
+    auth=cl.auth(jid.getNode(),jidparams['password'],resource=jid.getResource())
+    if not auth:
+       print ('could not authenticate!')
+       sys.exit()
+    id = cl.send(xmpp.protocol.Message(tojid,jabberMessage))
+

@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: ISO-8859-15 -*-
 
 """pkrefund is a tool to refund print jobs and generate PDF receipts."""
@@ -30,22 +30,22 @@ import sys
 import os
 import pwd
 import time
-import cStringIO
+from io import StringIO
 
-try :
+try:
     from reportlab.pdfgen import canvas
     from reportlab.lib import pagesizes
     from reportlab.lib.units import cm
-except ImportError :    
+except ImportError:
     hasRL = 0
-else :    
+else:
     hasRL = 1
-    
-try :
-    import PIL.Image 
-except ImportError :    
+
+try:
+    import PIL.Image
+except ImportError:
     hasPIL = 0
-else :    
+else:
     hasPIL = 1
 
 from pykota.tool import Percent, PyKotaTool, PyKotaToolError, PyKotaCommandLineError, crashed, N_
@@ -148,281 +148,287 @@ Examples :
   Refunds all jobs printed on printer HP2100 between February 1st 2006
   and yesterday. No confirmation will be asked.
 """)
-        
-class PkRefund(PyKotaTool) :        
+
+
+class PkRefund(PyKotaTool):
     """A class for refund manager."""
-    validfilterkeys = [ "username",
-                        "printername",
-                        "hostname",
-                        "jobid",
-                        "billingcode",
-                        "start",
-                        "end",
-                      ]
-                      
-    def getPageSize(self, pgsize) :
+    validfilterkeys = ["username",
+                       "printername",
+                       "hostname",
+                       "jobid",
+                       "billingcode",
+                       "start",
+                       "end",
+                       ]
+
+    def getPageSize(self, pgsize):
         """Returns the correct page size or None if not found."""
-        try :
+        try:
             return getattr(pagesizes, pgsize.upper())
-        except AttributeError :    
-            try :
+        except AttributeError:
+            try:
                 return getattr(pagesizes, pgsize.lower())
-            except AttributeError :
+            except AttributeError:
                 pass
-                
-    def printVar(self, label, value, size) :
+
+    def printVar(self, label, value, size):
         """Outputs a variable onto the PDF canvas.
         
            Returns the number of points to substract to current Y coordinate.
-        """   
-        xcenter = (self.pagesize[0] / 2.0) - 1*cm
+        """
+        xcenter = (self.pagesize[0] / 2.0) - 1 * cm
         self.canvas.saveState()
         self.canvas.setFont("Helvetica-Bold", size)
         self.canvas.setFillColorRGB(0, 0, 0)
-        self.canvas.drawRightString(xcenter, self.ypos, "%s :" % self.userCharsetToUTF8(label))
+        self.canvas.drawRightString(xcenter, self.ypos, f"{self.userCharsetToUTF8(label)} :")
         self.canvas.setFont("Courier-Bold", size)
         self.canvas.setFillColorRGB(0, 0, 1)
-        self.canvas.drawString(xcenter + 0.5*cm, self.ypos, self.userCharsetToUTF8(value))
+        self.canvas.drawString(xcenter + 0.5 * cm, self.ypos, self.userCharsetToUTF8(value))
         self.canvas.restoreState()
         self.ypos -= (size + 4)
-        
-    def pagePDF(self, receiptnumber, name, values, unit, reason) :
+
+    def pagePDF(self, receiptnumber, name, values, unit, reason):
         """Generates a new page in the PDF document."""
-        if values["nbpages"] :
+        if values["nbpages"]:
             self.canvas.doForm("background")
             self.ypos = self.yorigine - (cm + 20)
-            self.printVar(_("Refunding receipt"), "#%s" % receiptnumber, 22)
-            self.printVar(_("Username"), name, 22)
+            self.printVar("Refunding receipt", f"#{receiptnumber}", 22)
+            self.printVar("Username", name, 22)
             self.ypos -= 20
-            self.printVar(_("Edited on"), time.strftime("%c", time.localtime()), 14)
-                
+            self.printVar("Edited on", time.strftime("%c", time.localtime()), 14)
+
             self.ypos -= 20
-            self.printVar(_("Jobs refunded"), str(values["nbjobs"]), 18)
-            self.printVar(_("Pages refunded"), str(values["nbpages"]), 18)
-            self.printVar(_("Amount refunded"), "%.3f %s" % (values["nbcredits"], unit), 18)
+            self.printVar("Jobs refunded", str(values["nbjobs"]), 18)
+            self.printVar("Pages refunded", str(values["nbpages"]), 18)
+            self.printVar("Amount refunded", f"{values['nbcredits']:.3f} {unit}", 18)
             self.ypos -= 20
-            self.printVar(_("Reason"), reason, 14)
+            self.printVar("Reason", reason, 14)
             self.canvas.showPage()
             return 1
-        return 0    
-        
-    def initPDF(self, logo) :
+        return 0
+
+    def initPDF(self, logo):
         """Initializes the PDF document."""
-        self.pdfDocument = cStringIO.StringIO()        
-        self.canvas = c = canvas.Canvas(self.pdfDocument, \
-                                        pagesize=self.pagesize, \
+        self.pdfDocument = StringIO()
+        self.canvas = c = canvas.Canvas(self.pdfDocument,
+                                        pagesize=self.pagesize,
                                         pageCompression=1)
-        
+
         c.setAuthor(self.originalUserName)
         c.setTitle("PyKota print job refunding receipts")
         c.setSubject("Print job refunding receipts generated with PyKota")
-        
+
         self.canvas.beginForm("background")
         self.canvas.saveState()
-        
-        self.ypos = self.pagesize[1] - (2 * cm)            
-        
+
+        self.ypos = self.pagesize[1] - (2 * cm)
+
         xcenter = self.pagesize[0] / 2.0
-        if logo :
-            try :    
+        if logo:
+            try:
                 imglogo = PIL.Image.open(logo)
-            except IOError :    
-                self.printInfo("Unable to open image %s" % logo, "warn")
-            else :
+            except IOError:
+                self.printInfo(f"Unable to open image {logo}", "warn")
+            else:
                 (width, height) = imglogo.size
-                multi = float(width) / (8 * cm) 
+                multi = float(width) / (8 * cm)
                 width = float(width) / multi
                 height = float(height) / multi
                 self.ypos -= height
-                c.drawImage(logo, xcenter - (width / 2.0), \
-                                  self.ypos, \
-                                  width, height)
-        
+                c.drawImage(logo, xcenter - (width / 2.0),
+                            self.ypos,
+                            width, height)
+
         self.ypos -= (cm + 20)
         self.canvas.setFont("Helvetica-Bold", 14)
         self.canvas.setFillColorRGB(0, 0, 0)
-        msg = _("Here's the receipt for the refunding of your print jobs")
-        self.canvas.drawCentredString(xcenter, self.ypos, "%s :" % self.userCharsetToUTF8(msg))
-        
+        msg = "Here's the receipt for the refunding of your print jobs"
+        self.canvas.drawCentredString(xcenter, self.ypos, f"{self.userCharsetToUTF8(msg)} :")
+
         self.yorigine = self.ypos
         self.canvas.restoreState()
         self.canvas.endForm()
-        
-    def endPDF(self, fname) :    
+
+    def endPDF(self, fname):
         """Flushes the PDF generator."""
         self.canvas.save()
-        if fname != "-" :        
+        if fname != "-":
             outfile = open(fname, "w")
             outfile.write(self.pdfDocument.getvalue())
             outfile.close()
-        else :    
+        else:
             sys.stdout.write(self.pdfDocument.getvalue())
             sys.stdout.flush()
-        
-    def genReceipts(self, peruser, logo, outfname, firstnumber, reason, unit) :
+
+    def genReceipts(self, peruser, logo, outfname, firstnumber, reason, unit):
         """Generates the receipts file."""
-        if outfname and len(peruser) :
+        if outfname and len(peruser):
             percent = Percent(self, size=len(peruser))
-            if outfname != "-" :
-                percent.display("%s...\n" % _("Generating receipts"))
-                
+            if outfname != "-":
+                percent.display(f"{'Generating receipts'}...\n")
+
             self.initPDF(logo)
             number = firstnumber
-            for (name, values) in peruser.items() :
+            for (name, values) in peruser.items():
                 number += self.pagePDF(number, name, values, unit, reason)
-                if outfname != "-" :
+                if outfname != "-":
                     percent.oneMore()
-                    
-            if number > firstnumber :
+
+            if number > firstnumber:
                 self.endPDF(outfname)
-                
-            if outfname != "-" :
+
+            if outfname != "-":
                 percent.done()
-        
-    def main(self, arguments, options, restricted=1) :
+
+    def main(self, arguments, options, restricted=1):
         """Print Quota Data Dumper."""
-        if not hasRL :
-            raise PyKotaToolError, "The ReportLab module is missing. Download it from http://www.reportlab.org"
-        if not hasPIL :
-            raise PyKotaToolError, "The Python Imaging Library is missing. Download it from http://www.pythonware.com/downloads"
-            
-        if restricted and not self.config.isAdmin :
-            raise PyKotaCommandLineError, "%s : %s" % (pwd.getpwuid(os.geteuid())[0], _("You're not allowed to use this command."))
-            
-        if (not options["reason"]) or not options["reason"].strip() :
-            raise PyKotaCommandLineError, _("Refunding for no reason is forbidden. Please use the --reason command line option.")
-            
+        if not hasRL:
+            raise PyKotaToolError("The ReportLab module is missing. Download it from http://www.reportlab.org")
+        if not hasPIL:
+            raise PyKotaToolError(
+                "The Python Imaging Library is missing. Download it from http://www.pythonware.com/downloads")
+
+        if restricted and not self.config.isAdmin:
+            raise PyKotaCommandLineError(
+                "{} : {}".format(pwd.getpwuid(os.geteuid())[0], "You're not allowed to use this command."))
+
+        if (not options["reason"]) or not options["reason"].strip():
+            raise PyKotaCommandLineError(
+                "Refunding for no reason is forbidden. Please use the --reason command line option.")
+
         outfname = options["output"]
-        if outfname :
+        if outfname:
             outfname = outfname.strip()
-            if outfname == "-" :
+            if outfname == "-":
                 options["force"] = True
-                self.printInfo(_("The PDF file containing the receipts will be sent to stdout. --force is assumed."), "warn")
-            
-        try :    
+                self.printInfo("The PDF file containing the receipts will be sent to stdout. --force is assumed.",
+                               "warn")
+
+        try:
             firstnumber = int(options["number"])
-            if firstnumber <= 0 :
+            if firstnumber <= 0:
                 raise ValueError
-        except (ValueError, TypeError) :    
-            raise PyKotaCommandLineError, _("Incorrect value '%s' for the --number command line option") % options["number"]
-            
+        except (ValueError, TypeError):
+            raise PyKotaCommandLineError(f"Incorrect value '{options['number']}' for the --number command line option")
+
         self.pagesize = self.getPageSize(options["pagesize"])
-        if self.pagesize is None :
+        if self.pagesize is None:
             self.pagesize = self.getPageSize("a4")
-            self.printInfo(_("Invalid 'pagesize' option %s, defaulting to A4.") % options["pagesize"], "warn")
-            
+            self.printInfo(f"Invalid 'pagesize' option {options['pagesize']}, defaulting to A4.", "warn")
+
         extractonly = {}
-        for filterexp in arguments :
-            if filterexp.strip() :
-                try :
+        for filterexp in arguments:
+            if filterexp.strip():
+                try:
                     (filterkey, filtervalue) = [part.strip() for part in filterexp.split("=")]
                     filterkey = filterkey.lower()
-                    if filterkey not in self.validfilterkeys :
-                        raise ValueError                
-                except ValueError :    
-                    raise PyKotaCommandLineError, _("Invalid filter value [%s], see help.") % filterexp
-                else :    
-                    extractonly.update({ filterkey : filtervalue })
-            
+                    if filterkey not in self.validfilterkeys:
+                        raise ValueError
+                except ValueError:
+                    raise PyKotaCommandLineError(f"Invalid filter value [{filterexp}], see help.")
+                else:
+                    extractonly.update({filterkey: filtervalue})
+
         percent = Percent(self)
-        if outfname != "-" :
-            percent.display("%s..." % _("Extracting datas"))
-            
-        username = extractonly.get("username")    
-        if username :
+        if outfname != "-":
+            percent.display("Extracting datas...")
+
+        username = extractonly.get("username")
+        if username:
             user = self.storage.getUser(username)
-        else :
+        else:
             user = None
-            
-        printername = extractonly.get("printername")    
-        if printername :
+
+        printername = extractonly.get("printername")
+        if printername:
             printer = self.storage.getPrinter(printername)
-        else :    
+        else:
             printer = None
-            
+
         start = extractonly.get("start")
         end = extractonly.get("end")
         (start, end) = self.storage.cleanDates(start, end)
-        
-        jobs = self.storage.retrieveHistory(user=user,    
-                                            printer=printer, 
+
+        jobs = self.storage.retrieveHistory(user=user,
+                                            printer=printer,
                                             hostname=extractonly.get("hostname"),
                                             billingcode=extractonly.get("billingcode"),
                                             jobid=extractonly.get("jobid"),
                                             start=start,
                                             end=end,
                                             limit=0)
-        peruser = {}                                    
-        nbjobs = 0                                    
-        nbpages = 0                                            
+        peruser = {}
+        nbjobs = 0
+        nbpages = 0
         nbcredits = 0.0
         reason = (options.get("reason") or "").strip()
         percent.setSize(len(jobs))
-        if outfname != "-" :
+        if outfname != "-":
             percent.display("\n")
-        for job in jobs :                                    
-            if job.JobSize and (job.JobAction not in ("DENY", "CANCEL", "REFUND")) :
-                if options["force"] :
+        for job in jobs:
+            if job.JobSize and (job.JobAction not in ("DENY", "CANCEL", "REFUND")):
+                if options["force"]:
                     nbpages += job.JobSize
                     nbcredits += job.JobPrice
-                    counters = peruser.setdefault(job.UserName, { "nbjobs" : 0, "nbpages" : 0, "nbcredits" : 0.0 })
+                    counters = peruser.setdefault(job.UserName, {"nbjobs": 0, "nbpages": 0, "nbcredits": 0.0})
                     counters["nbpages"] += job.JobSize
                     counters["nbcredits"] += job.JobPrice
                     job.refund(reason)
                     counters["nbjobs"] += 1
                     nbjobs += 1
-                    if outfname != "-" :
+                    if outfname != "-":
                         percent.oneMore()
-                else :    
-                    print _("Date : %s") % str(job.JobDate)[:19]
-                    print _("Printer : %s") % job.PrinterName
-                    print _("User : %s") % job.UserName
-                    print _("JobId : %s") % job.JobId
-                    print _("Title : %s") % job.JobTitle
-                    if job.JobBillingCode :
-                        print _("Billing code : %s") % job.JobBillingCode
-                    print _("Pages : %i") % job.JobSize
-                    print _("Credits : %.3f") % job.JobPrice
-                    
-                    while True :                             
-                        answer = raw_input("\t%s ? " % _("Refund (Y/N)")).strip().upper()
-                        if answer == _("Y") :
+                else:
+                    print(f"Date : {str(job.JobDate)[:19]}")
+                    print(f"Printer : {job.PrinterName}")
+                    print(f"User : {job.UserName}")
+                    print(f"JobId : {job.JobId}")
+                    print(f"Title : {job.JobTitle}")
+                    if job.JobBillingCode:
+                        print(f"Billing code : {job.JobBillingCode}")
+                    print(f"Pages : {job.JobSize:d}")
+                    print(f"Credits : {job.JobPrice:.3f}")
+
+                    while True:
+                        answer = input(f"\t{'Refund (Y/N)'} ? ").strip().upper()
+                        if answer == "Y":
                             nbpages += job.JobSize
                             nbcredits += job.JobPrice
-                            counters = peruser.setdefault(job.UserName, { "nbjobs" : 0, "nbpages" : 0, "nbcredits" : 0.0 })
+                            counters = peruser.setdefault(job.UserName, {"nbjobs": 0, "nbpages": 0, "nbcredits": 0.0})
                             counters["nbpages"] += job.JobSize
                             counters["nbcredits"] += job.JobPrice
                             job.refund(reason)
                             counters["nbjobs"] += 1
                             nbjobs += 1
-                            break    
-                        elif answer == _("N") :    
                             break
-                    print        
-        if outfname != "-" :
+                        elif answer == "N":
+                            break
+                    print()
+        if outfname != "-":
             percent.done()
         self.genReceipts(peruser, options["logo"].strip(), outfname, firstnumber, reason, options["unit"])
-        if outfname != "-" :    
-            print _("Refunded %i users for %i jobs, %i pages and %.3f credits") % (len(peruser), nbjobs, nbpages, nbcredits)
-            
-if __name__ == "__main__" : 
+        if outfname != "-":
+            print(f"Refunded {len(peruser):d} users for {nbjobs:d} jobs, {nbpages:d} pages and {nbcredits:.3f} credits")
+
+
+if __name__ == "__main__":
     retcode = 0
-    try :
-        defaults = { "unit" : N_("Credits"),
-                     "pagesize" : "a4", \
-                     "logo" : "/usr/share/pykota/logos/pykota.jpeg",
-                     "number" : "1",
-                   }
+    try:
+        defaults = {"unit": N_("Credits"),
+                    "pagesize": "a4",
+                    "logo": "/usr/share/pykota/logos/pykota.jpeg",
+                    "number": "1",
+                    }
         short_options = "vhfru:o:p:l:n:"
         long_options = ["help", "version", "force", "reason=", "unit=", "output=", "pagesize=", "logo=", "number="]
-        
+
         # Initializes the command line tool
         refundmanager = PkRefund(doc=__doc__)
         refundmanager.deferredInit()
-        
+
         # parse and checks the command line
         (options, args) = refundmanager.parseCommandline(sys.argv[1:], short_options, long_options, allownothing=1)
-        
+
         # sets long options
         options["help"] = options["h"] or options["help"]
         options["version"] = options["v"] or options["version"]
@@ -433,33 +439,33 @@ if __name__ == "__main__" :
         options["pagesize"] = options["p"] or options["pagesize"] or defaults["pagesize"]
         options["number"] = options["n"] or options["number"] or defaults["number"]
         options["logo"] = options["l"] or options["logo"]
-        if options["logo"] is None : # Allows --logo="" to disable the logo entirely
-            options["logo"] = defaults["logo"]  
-        
-        if options["help"] :
+        if options["logo"] is None:  # Allows --logo="" to disable the logo entirely
+            options["logo"] = defaults["logo"]
+
+        if options["help"]:
             refundmanager.display_usage_and_quit()
-        elif options["version"] :
+        elif options["version"]:
             refundmanager.display_version_and_quit()
-        else :
+        else:
             retcode = refundmanager.main(args, options)
-    except KeyboardInterrupt :        
+    except KeyboardInterrupt:
         sys.stderr.write("\nInterrupted with Ctrl+C !\n")
         retcode = -3
-    except PyKotaCommandLineError, msg :    
-        sys.stderr.write("%s : %s\n" % (sys.argv[0], msg))
+    except PyKotaCommandLineError as msg:
+        sys.stderr.write(f"{sys.argv[0]} : {msg}\n")
         retcode = -2
-    except SystemExit :        
+    except SystemExit:
         pass
-    except :
-        try :
+    except:
+        try:
             refundmanager.crashed("pkrefund failed")
-        except :    
+        except:
             crashed("pkrefund failed")
         retcode = -1
 
-    try :
+    try:
         refundmanager.storage.close()
-    except (TypeError, NameError, AttributeError) :    
+    except (TypeError, NameError, AttributeError):
         pass
-        
-    sys.exit(retcode)    
+
+    sys.exit(retcode)

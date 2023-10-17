@@ -1,34 +1,33 @@
-#! /usr/bin/env python
-# -*- coding: ISO-8859-15 -*-
+#! /usr/bin/env python3
+# -*- coding: utf-8 -*-
 #
 # pkipplib : IPP and CUPS support for Python
 #
-# (c) 2003, 2004, 2005, 2006 Jerome Alet <alet@librelogiciel.com>
-# This program is free software; you can redistribute it and/or modify
+# (c) 2003-2013 Jerome Alet <alet@librelogiciel.com>
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# $Id: pkipplib.py 34 2006-06-24 13:56:24Z jerome $
+# $Id$
 #
-#
+
 
 import sys
 import os
-import urllib2
+import urllib.request
 import socket
 from struct import pack, unpack
 
-IPP_VERSION = "1.1"     # default version number
+IPP_VERSION = "1.1"  # default version number
 
 IPP_PORT = 631
 
@@ -71,7 +70,7 @@ IPP_TAG_LANGUAGE = 0x48
 IPP_TAG_MIMETYPE = 0x49
 IPP_TAG_MEMBERNAME = 0x4a
 IPP_TAG_MASK = 0x7fffffff
-IPP_TAG_COPY = -0x7fffffff-1
+IPP_TAG_COPY = -0x7fffffff - 1
 
 IPP_RES_PER_INCH = 3
 IPP_RES_PER_CM = 4
@@ -191,6 +190,8 @@ CUPS_GET_DEVICES = 0x400b
 CUPS_GET_PPDS = 0x400c
 CUPS_MOVE_JOB = 0x400d
 CUPS_AUTHENTICATE_JOB = 0x400e
+CUPS_GET_PPD = 0x400f
+CUPS_GET_DOCUMENT = 0x4027
 
 IPP_OK = 0x0000
 IPP_OK_SUBST = 0x0001
@@ -236,7 +237,7 @@ IPP_PRINTER_BUSY = 0x0507
 IPP_ERROR_JOB_CANCELLED = 0x0508
 IPP_MULTIPLE_JOBS_NOT_SUPPORTED = 0x0509
 IPP_PRINTER_IS_DEACTIVATED = 0x50a
-  
+
 CUPS_PRINTER_LOCAL = 0x0000
 CUPS_PRINTER_CLASS = 0x0001
 CUPS_PRINTER_REMOTE = 0x0002
@@ -263,81 +264,88 @@ CUPS_PRINTER_NOT_SHARED = 0x2000
 CUPS_PRINTER_AUTHENTICATED = 0x4000
 CUPS_PRINTER_COMMANDS = 0x8000
 CUPS_PRINTER_OPTIONS = 0xe6ff
-  
-  
-class IPPError(Exception) :
+
+
+class IPPError(Exception):
     """An exception for IPP related stuff."""
-    def __init__(self, message = ""):
+
+    def __init__(self, message=""):
         self.message = message
         Exception.__init__(self, message)
+
     def __repr__(self):
         return self.message
+
     __str__ = __repr__
 
-class FakeAttribute :
+
+class FakeAttribute:
     """Fakes an IPPRequest attribute to simplify usage syntax."""
-    def __init__(self, request, name) :
+
+    def __init__(self, request, name):
         """Initializes the fake attribute."""
         self.request = request
         self.name = name
-        
-    def __setitem__(self, key, value) :
+
+    def __setitem__(self, key, value):
         """Appends the value to the real attribute."""
-        attributeslist = getattr(self.request, "_%s_attributes" % self.name)
-        for i in range(len(attributeslist)) :
+        attributeslist = getattr(self.request, f"_{self.name}_attributes")
+        for i in range(len(attributeslist)):
             attribute = attributeslist[i]
-            for j in range(len(attribute)) :
+            for j in range(len(attribute)):
                 (attrname, attrvalue) = attribute[j]
-                if attrname == key :
+                if attrname == key:
                     attribute[j][1].append(value)
                     return
-            attribute.append((key, [value]))        
-            
-    def __getitem__(self, key) :
+            attribute.append((key, [value]))
+
+    def __getitem__(self, key):
         """Returns an attribute's value."""
         answer = []
-        attributeslist = getattr(self.request, "_%s_attributes" % self.name)
-        for i in range(len(attributeslist)) :
+        attributeslist = getattr(self.request, f"_{self.name}_attributes")
+        for i in range(len(attributeslist)):
             attribute = attributeslist[i]
-            for j in range(len(attribute)) :
+            for j in range(len(attribute)):
                 (attrname, attrvalue) = attribute[j]
-                if attrname == key :
+                if attrname == key:
                     answer.extend(attrvalue)
-        if answer :
+        if answer:
             return answer
-        raise KeyError, key            
-    
-class IPPRequest :
+        raise KeyError(key)
+
+
+class IPPRequest:
     """A class for IPP requests."""
-    attributes_types = ("operation", "job", "printer", "unsupported", \
-                                     "subscription", "event_notification")
-    def __init__(self, data="", version=IPP_VERSION, 
-                                operation_id=None, \
-                                request_id=None, \
-                                debug=False) :
+    attributes_types = ("operation", "job", "printer", "unsupported",
+                        "subscription", "event_notification")
+
+    def __init__(self, data="", version=IPP_VERSION,
+                 operation_id=None,
+                 request_id=None,
+                 debug=False):
         """Initializes an IPP Message object.
-        
+
            Parameters :
-           
+
              data : the complete IPP Message's content.
              debug : a boolean value to output debug info on stderr.
         """
         self.debug = debug
         self._data = data
         self.parsed = False
-        
+
         # Initializes message
-        self.setVersion(version)                
+        self.setVersion(version)
         self.setOperationId(operation_id)
         self.setRequestId(request_id)
         self.data = ""
-        
-        for attrtype in self.attributes_types :
-            setattr(self, "_%s_attributes" % attrtype, [[]])
-        
-        # Initialize tags    
-        self.tags = [ None ] * 256 # by default all tags reserved
-        
+
+        for attrtype in self.attributes_types:
+            setattr(self, f"_{attrtype}_attributes", [[]])
+
+        # Initialize tags
+        self.tags = [None] * 256  # by default all tags reserved
+
         # Delimiter tags
         self.tags[0x01] = "operation-attributes-tag"
         self.tags[0x02] = "job-attributes-tag"
@@ -346,7 +354,7 @@ class IPPRequest :
         self.tags[0x05] = "unsupported-attributes-tag"
         self.tags[0x06] = "subscription-attributes-tag"
         self.tags[0x07] = "event_notification-attributes-tag"
-        
+
         # out of band values
         self.tags[0x10] = "unsupported"
         self.tags[0x11] = "reserved-for-future-default"
@@ -355,23 +363,23 @@ class IPPRequest :
         self.tags[0x15] = "not-settable"
         self.tags[0x16] = "delete-attribute"
         self.tags[0x17] = "admin-define"
-  
+
         # integer values
         self.tags[0x20] = "generic-integer"
         self.tags[0x21] = "integer"
         self.tags[0x22] = "boolean"
         self.tags[0x23] = "enum"
-        
+
         # octetString
         self.tags[0x30] = "octetString-with-an-unspecified-format"
         self.tags[0x31] = "dateTime"
         self.tags[0x32] = "resolution"
         self.tags[0x33] = "rangeOfInteger"
-        self.tags[0x34] = "begCollection" # TODO : find sample files for testing
+        self.tags[0x34] = "begCollection"  # TODO : find sample files for testing
         self.tags[0x35] = "textWithLanguage"
         self.tags[0x36] = "nameWithLanguage"
         self.tags[0x37] = "endCollection"
-        
+
         # character strings
         self.tags[0x40] = "generic-character-string"
         self.tags[0x41] = "textWithoutLanguage"
@@ -383,340 +391,394 @@ class IPPRequest :
         self.tags[0x48] = "naturalLanguage"
         self.tags[0x49] = "mimeMediaType"
         self.tags[0x4a] = "memberAttrName"
-        
+
         # Reverse mapping to generate IPP messages
         self.tagvalues = {}
-        for i in range(len(self.tags)) :
+        for i in range(len(self.tags)):
             value = self.tags[i]
-            if value is not None :
+            if value is not None:
                 self.tagvalues[value] = i
-                                     
-    def __getattr__(self, name) :                                 
+
+    def __getattr__(self, name):
         """Fakes attribute access."""
-        if name in self.attributes_types :
+        if name in self.attributes_types:
             return FakeAttribute(self, name)
-        else :
-            raise AttributeError, name
-            
-    def __str__(self) :        
+        else:
+            raise AttributeError(name)
+
+    def __str__(self):
         """Returns the parsed IPP message in a readable form."""
-        if not self.parsed :
+        if not self.parsed:
             return ""
         mybuffer = []
-        mybuffer.append("IPP version : %s.%s" % self.version)
-        mybuffer.append("IPP operation Id : 0x%04x" % self.operation_id)
-        mybuffer.append("IPP request Id : 0x%08x" % self.request_id)
-        for attrtype in self.attributes_types :
-            for attribute in getattr(self, "_%s_attributes" % attrtype) :
-                if attribute :
-                    mybuffer.append("%s attributes :" % attrtype.title())
-                for (name, value) in attribute :
-                    mybuffer.append("  %s : %s" % (name, value))
-        if self.data :            
-            mybuffer.append("IPP datas : %s" % repr(self.data))
+        mybuffer.append("IPP version : {}.{}".format(*self.version))
+        mybuffer.append(f"IPP operation Id : 0x{self.operation_id:04x}")
+        mybuffer.append(f"IPP request Id : 0x{self.request_id:08x}")
+        for attrtype in self.attributes_types:
+            for attribute in getattr(self, f"_{attrtype}_attributes"):
+                if attribute:
+                    mybuffer.append(f"{attrtype.title()} attributes :")
+                for (name, value) in attribute:
+                    mybuffer.append(f"  {name} : {value}")
+        if self.data:
+            mybuffer.append(f"IPP datas : {repr(self.data)}")
         return "\n".join(mybuffer)
-        
-    def logDebug(self, msg) :    
+
+    def logDebug(self, msg):
         """Prints a debug message."""
-        if self.debug :
-            sys.stderr.write("%s\n" % msg)
+        if self.debug:
+            sys.stderr.write(f"{msg}\n")
             sys.stderr.flush()
-            
-    def setVersion(self, version) :
+
+    def setVersion(self, version):
         """Sets the request's operation id."""
-        if version is not None :
-            try :
+        if version is not None:
+            try:
                 self.version = [int(p) for p in version.split(".")]
-            except AttributeError :
-                if len(version) == 2 : # 2-tuple
+            except AttributeError:
+                if len(version) == 2:  # 2-tuple
                     self.version = version
-                else :    
-                    try :
+                else:
+                    try:
                         self.version = [int(p) for p in str(float(version)).split(".")]
-                    except :
+                    except:
                         self.version = [int(p) for p in IPP_VERSION.split(".")]
-        
-    def setOperationId(self, opid) :        
+
+    def setOperationId(self, opid):
         """Sets the request's operation id."""
         self.operation_id = opid
-        
-    def setRequestId(self, reqid) :        
+
+    def setRequestId(self, reqid):
         """Sets the request's request id."""
         self.request_id = reqid
-        
-    def dump(self) :    
+
+    def dump(self):
         """Generates an IPP Message.
-        
+
            Returns the message as a string of text.
-        """    
+        """
         mybuffer = []
-        if None not in (self.version, self.operation_id) :
+        if None not in (self.version, self.operation_id):
             mybuffer.append(chr(self.version[0]) + chr(self.version[1]))
             mybuffer.append(pack(">H", self.operation_id))
             mybuffer.append(pack(">I", self.request_id or 1))
-            for attrtype in self.attributes_types :
-                for attribute in getattr(self, "_%s_attributes" % attrtype) :
-                    if attribute :
-                        mybuffer.append(chr(self.tagvalues["%s-attributes-tag" % attrtype]))
-                    for (attrname, value) in attribute :
+            for attrtype in self.attributes_types:
+                for attribute in getattr(self, f"_{attrtype}_attributes"):
+                    if attribute:
+                        mybuffer.append(chr(self.tagvalues[f"{attrtype}-attributes-tag"]))
+                    for (attrname, value) in attribute:
                         nameprinted = 0
-                        for (vtype, val) in value :
+                        for (vtype, val) in value:
                             mybuffer.append(chr(self.tagvalues[vtype]))
-                            if not nameprinted :
+                            if not nameprinted:
                                 mybuffer.append(pack(">H", len(attrname)))
                                 mybuffer.append(attrname)
                                 nameprinted = 1
-                            else :     
+                            else:
                                 mybuffer.append(pack(">H", 0))
-                            if vtype in ("integer", "enum") :
+                            if vtype in ("integer", "enum"):
                                 mybuffer.append(pack(">H", 4))
                                 mybuffer.append(pack(">I", val))
-                            elif vtype == "boolean" :
+                            elif vtype == "boolean":
                                 mybuffer.append(pack(">H", 1))
                                 mybuffer.append(chr(val))
-                            else :    
+                            else:
                                 mybuffer.append(pack(">H", len(val)))
                                 mybuffer.append(val)
             mybuffer.append(chr(self.tagvalues["end-of-attributes-tag"]))
-        mybuffer.append(self.data)    
-        return "".join(mybuffer)
-            
-    def parse(self) :
+        mybuffer.append(self.data)
+        lst = []
+        for val in mybuffer:
+            try:
+                lst.append(val.encode('utf8'))
+            except:
+                lst.append(val)
+        return b"".join(lst)
+        #return "".join(mybuffer)
+
+    def parse(self):
         """Parses an IPP Request.
-        
+
            NB : Only a subset of RFC2910 is implemented.
         """
         self._curname = None
         self._curattributes = None
-        
-        self.setVersion((ord(self._data[0]), ord(self._data[1])))
-        self.setOperationId(unpack(">H", self._data[2:4])[0])
-        self.setRequestId(unpack(">I", self._data[4:8])[0])
-        self.position = 8
-        endofattributes = self.tagvalues["end-of-attributes-tag"]
-        maxdelimiter = self.tagvalues["event_notification-attributes-tag"]
-        nulloffset = lambda : 0
-        try :
-            tag = ord(self._data[self.position])
-            while tag != endofattributes :
+
+        try:
+            self.setVersion((self._data[0], self._data[1]))
+            self.setOperationId(unpack(">H", self._data[2:4])[0])
+            self.setRequestId(unpack(">I", self._data[4:8])[0])
+            self.position = 8
+            endofattributes = self.tagvalues["end-of-attributes-tag"]
+            maxdelimiter = self.tagvalues["event_notification-attributes-tag"]
+            nulloffset = lambda: 0
+            tag = self._data[self.position]
+            while tag != endofattributes:
                 self.position += 1
                 name = self.tags[tag]
-                if name is not None :
+                if name is not None:
                     func = getattr(self, name.replace("-", "_"), nulloffset)
                     self.position += func()
-                    if ord(self._data[self.position]) > maxdelimiter :
+                    if self._data[self.position] > maxdelimiter:
                         self.position -= 1
                         continue
-                oldtag = tag        
-                tag = ord(self._data[self.position])
-                if tag == oldtag :
+                oldtag = tag
+                tag = self._data[self.position]
+                if tag == oldtag:
                     self._curattributes.append([])
-        except IndexError :
-            raise IPPError, "Unexpected end of IPP message."
-            
-        self.data = self._data[self.position+1:]            
+        except IndexError:
+            raise IPPError("Unexpected end of IPP message.")
+
+        self.data = self._data[self.position + 1:]
         self.parsed = True
-        
-    def parseTag(self) :    
+
+    def parseTag(self):
         """Extracts information from an IPP tag."""
         pos = self.position
-        tagtype = self.tags[ord(self._data[pos])]
+        tagtype = self.tags[self._data[pos]]
         pos += 1
         posend = pos2 = pos + 2
         namelength = unpack(">H", self._data[pos:pos2])[0]
-        if not namelength :
+        if not namelength:
             name = self._curname
-        else :    
+        else:
             posend += namelength
             self._curname = name = self._data[pos2:posend]
         pos2 = posend + 2
         valuelength = unpack(">H", self._data[posend:pos2])[0]
         posend = pos2 + valuelength
         value = self._data[pos2:posend]
-        if tagtype in ("integer", "enum") :
+        if tagtype in ("integer", "enum"):
             value = unpack(">I", value)[0]
-        elif tagtype == "boolean" :    
-            value = ord(value)
-        try :    
+        elif tagtype == "boolean":
+            value = value
+        try:
             (oldname, oldval) = self._curattributes[-1][-1]
-            if oldname == name :
+            if oldname == name:
                 oldval.append((tagtype, value))
-            else :    
+            else:
                 raise IndexError
-        except IndexError :    
+        except IndexError:
             self._curattributes[-1].append((name, [(tagtype, value)]))
-        self.logDebug("%s(%s) : %s" % (name, tagtype, value))
+        self.logDebug(f"{name}({tagtype}) : {value}")
         return posend - self.position
-        
-    def operation_attributes_tag(self) : 
+
+    def operation_attributes_tag(self):
         """Indicates that the parser enters into an operation-attributes-tag group."""
         self._curattributes = self._operation_attributes
         return self.parseTag()
-        
-    def job_attributes_tag(self) : 
+
+    def job_attributes_tag(self):
         """Indicates that the parser enters into a job-attributes-tag group."""
         self._curattributes = self._job_attributes
         return self.parseTag()
-        
-    def printer_attributes_tag(self) : 
+
+    def printer_attributes_tag(self):
         """Indicates that the parser enters into a printer-attributes-tag group."""
         self._curattributes = self._printer_attributes
         return self.parseTag()
-        
-    def unsupported_attributes_tag(self) : 
+
+    def unsupported_attributes_tag(self):
         """Indicates that the parser enters into an unsupported-attributes-tag group."""
         self._curattributes = self._unsupported_attributes
         return self.parseTag()
-        
-    def subscription_attributes_tag(self) : 
+
+    def subscription_attributes_tag(self):
         """Indicates that the parser enters into a subscription-attributes-tag group."""
         self._curattributes = self._subscription_attributes
         return self.parseTag()
-        
-    def event_notification_attributes_tag(self) : 
+
+    def event_notification_attributes_tag(self):
         """Indicates that the parser enters into an event-notification-attributes-tag group."""
         self._curattributes = self._event_notification_attributes
         return self.parseTag()
-        
-            
-class CUPS :
+
+
+class CUPS:
     """A class for a CUPS instance."""
-    def __init__(self, url=None, username=None, password=None, charset="utf-8", language="en-us", debug=False) :
+
+    def __init__(self, url=None, username=None, password=None, charset="utf-8", language="en-US", debug=False):
         """Initializes the CUPS instance."""
-        if url is not None :
+        if url is not None:
             self.url = url.replace("ipp://", "http://")
-            if self.url.endswith("/") :
+            if self.url.endswith("/"):
                 self.url = self.url[:-1]
-        else :        
+        else:
             self.url = self.getDefaultURL()
-        self.username = username
-        self.password = password
+
+        # If no username or password, use the ones set by CUPS, if any
+        self.username = username or os.environ.get("AUTH_USERNAME")
+        self.password = password or os.environ.get("AUTH_PASSWORD")
+
         self.charset = charset
         self.language = language
         self.debug = debug
         self.lastError = None
         self.lastErrorMessage = None
         self.requestId = None
-        
-    def getDefaultURL(self) :    
+
+    def getDefaultURL(self):
         """Builds a default URL."""
         # TODO : encryption methods.
-        server = os.environ.get("CUPS_SERVER") or "localhost"
-        port = os.environ.get("IPP_PORT") or 631
-        if server.startswith("/") :
+        server = os.environ.get("CUPS_SERVER", "localhost")
+        port = os.environ.get("IPP_PORT", "631")
+        if server.startswith("/"):
             # it seems it's a unix domain socket.
             # we can't handle this right now, so we use the default instead.
-            return "http://localhost:%s" % port
-        else :    
-            return "http://%s:%s" % (server, port)
-            
-    def identifierToURI(self, service, ident) :
+            return f"http://localhost:{port}"
+            # return "socket:%s" % server # TODO : make this work !
+        else:
+            return f"http://{server}:{port}"
+
+    def identifierToURI(self, service, ident):
         """Transforms an identifier into a particular URI depending on requested service."""
-        return "%s/%s/%s" % (self.url.replace("http://", "ipp://"),
-                             service,
-                             ident)
-        
-    def nextRequestId(self) :        
+        return f"{self.url.replace('http://', 'ipp://')}/{service}/{ident}"
+
+    def nextRequestId(self):
         """Increments the current request id and returns the new value."""
-        try :
+        try:
             self.requestId += 1
-        except TypeError :    
+        except TypeError:
             self.requestId = 1
         return self.requestId
-            
-    def newRequest(self, operationid=None) :
+
+    def newRequest(self, operationid=None):
         """Generates a new empty request."""
-        if operationid is not None :
-            req = IPPRequest(operation_id=operationid, \
-                             request_id=self.nextRequestId(), \
+        if operationid is not None:
+            req = IPPRequest(operation_id=operationid,
+                             request_id=self.nextRequestId(),
                              debug=self.debug)
             req.operation["attributes-charset"] = ("charset", self.charset)
             req.operation["attributes-natural-language"] = ("naturalLanguage", self.language)
+            if self.username:
+                req.operation["requesting-user-name"] = ("nameWithoutLanguage", self.username)
             return req
-    
-    def doRequest(self, req, url=None) :
+
+    def doRequest(self, req, url=None):
         """Sends a request to the CUPS server.
            returns a new IPPRequest object, containing the parsed answer.
-        """   
-        connexion = urllib2.Request(url=url or self.url, \
-                             data=req.dump())
-        connexion.add_header("Content-Type", "application/ipp")
-        if self.username :
-            pwmanager = urllib2.HTTPPasswordMgrWithDefaultRealm()
-            pwmanager.add_password(None, \
-                                   "%s%s" % (connexion.get_host(), connexion.get_selector()), \
-                                   self.username, \
+        """
+        url = url or self.url
+        connection = urllib.request.Request(url=url,
+                                            data=req.dump())
+        connection.add_header("Content-Type", "application/ipp")
+        proxyhandler = urllib.request.ProxyHandler({})
+        if self.username:
+            pwmanager = urllib.request.HTTPPasswordMgrWithDefaultRealm()
+            pwmanager.add_password(None,
+                                   f"{connection.host}{connection.selector}",
+                                   self.username,
                                    self.password or "")
-            authhandler = urllib2.HTTPBasicAuthHandler(pwmanager)                       
-            opener = urllib2.build_opener(authhandler)
-            urllib2.install_opener(opener)
-        self.lastError = None    
+            authhandler = urllib.request.HTTPBasicAuthHandler(pwmanager)
+            opener = urllib.request.build_opener(proxyhandler, authhandler)
+        else:  # TODO : also do this in the 'if' part
+            if not url.startswith("socket:"):
+                opener = urllib.request.build_opener(proxyhandler)
+            else:
+                class SocketHandler(urllib.request.HTTPHandler):
+                    """A class to handle IPP connections over an Unix domain socket."""
+
+                    def socket_open(self, req):
+                        """Opens an Unix domain socket for IPP."""
+                        req.host = "localhost"
+                        req.geturl = lambda: req.get_full_url()[7:]
+                        req.info = lambda: f"Unix domain socket {req.geturl()}"
+                        req.get_selector = req.geturl
+                        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                        s.connect(req.get_selector())
+                        s.settimeout(5.0)
+                        sys.stderr.write(f"Opened [{req.get_selector()}]\n")
+                        return s.makefile(mode="r+b")
+
+                opener = urllib.request.build_opener(proxyhandler, SocketHandler())
+
+        urllib.request.install_opener(opener)
+        self.lastError = None
         self.lastErrorMessage = None
-        try :    
-            response = urllib2.urlopen(connexion)
-        except (urllib2.URLError, urllib2.HTTPError, socket.error), error :    
-            self.lastError = error
-            self.lastErrorMessage = str(error)
+        try:
+            response = urllib.request.urlopen(connection)
+        except (urllib.error.URLError, urllib.error.HTTPError, socket.error):
+            self.lastError = urllib.error
+            self.lastErrorMessage = str(urllib.error)
             return None
-        else :    
-            datas = response.read()
-            ippresponse = IPPRequest(datas)
-            ippresponse.parse()
-            return ippresponse
-    
-    def getPPD(self, queuename) :    
+        else:
+            bytes = []
+            try:
+                try:
+                    while True:
+                        try:
+                            byte = response.read(1)
+                        except AttributeError:
+                            byte = response.recv(1)
+                        if not byte:
+                            break
+                        else:
+                            bytes.append(byte)
+                except socket.error:
+                    sys.stderr.write("socket error\n")
+                    pass
+            finally:
+                datas = b"".join(bytes)
+            if datas:
+                ippresponse = IPPRequest(datas)
+                ippresponse.parse()
+                return ippresponse
+            else:
+                return None
+
+    def getPPD(self, queuename):
         """Retrieves the PPD for a particular queuename."""
         req = self.newRequest(IPP_GET_PRINTER_ATTRIBUTES)
         req.operation["printer-uri"] = ("uri", self.identifierToURI("printers", queuename))
-        for attrib in ("printer-uri-supported", "printer-type", "member-uris") :
+        for attrib in ("printer-uri-supported", "printer-type", "member-uris"):
             req.operation["requested-attributes"] = ("nameWithoutLanguage", attrib)
         return self.doRequest(req)  # TODO : get the PPD from the actual print server
-        
-    def getDefault(self) :
+
+    def getDefault(self):
         """Retrieves CUPS' default printer."""
         return self.doRequest(self.newRequest(CUPS_GET_DEFAULT))
-    
-    def getJobAttributes(self, jobid) :    
+
+    def getJobAttributes(self, jobid):
         """Retrieves a print job's attributes."""
         req = self.newRequest(IPP_GET_JOB_ATTRIBUTES)
         req.operation["job-uri"] = ("uri", self.identifierToURI("jobs", jobid))
         return self.doRequest(req)
-        
-    def getPrinters(self) :    
+
+    def getPrinters(self):
         """Returns the list of print queues names."""
         req = self.newRequest(CUPS_GET_PRINTERS)
         req.operation["requested-attributes"] = ("keyword", "printer-name")
         req.operation["printer-type"] = ("enum", 0)
         req.operation["printer-type-mask"] = ("enum", CUPS_PRINTER_CLASS)
         return [printer[1] for printer in self.doRequest(req).printer["printer-name"]]
-        
-    def getDevices(self) :    
+
+    def getDevices(self):
         """Returns a list of devices as (deviceclass, deviceinfo, devicemakeandmodel, deviceuri) tuples."""
         answer = self.doRequest(self.newRequest(CUPS_GET_DEVICES))
-        return zip([d[1] for d in answer.printer["device-class"]], \
-                   [d[1] for d in answer.printer["device-info"]], \
-                   [d[1] for d in answer.printer["device-make-and-model"]], \
+        return zip([d[1] for d in answer.printer["device-class"]],
+                   [d[1] for d in answer.printer["device-info"]],
+                   [d[1] for d in answer.printer["device-make-and-model"]],
                    [d[1] for d in answer.printer["device-uri"]])
-                   
-    def getPPDs(self) :    
+
+    def getPPDs(self):
         """Returns a list of PPDs as (ppdnaturallanguage, ppdmake, ppdmakeandmodel, ppdname) tuples."""
         answer = self.doRequest(self.newRequest(CUPS_GET_PPDS))
-        return zip([d[1] for d in answer.printer["ppd-natural-language"]], \
-                   [d[1] for d in answer.printer["ppd-make"]], \
-                   [d[1] for d in answer.printer["ppd-make-and-model"]], \
+        return zip([d[1] for d in answer.printer["ppd-natural-language"]],
+                   [d[1] for d in answer.printer["ppd-make"]],
+                   [d[1] for d in answer.printer["ppd-make-and-model"]],
                    [d[1] for d in answer.printer["ppd-name"]])
-                   
+
     def createSubscription(self, uri, events=["all"],
-                                      userdata=None,
-                                      recipient=None,
-                                      pullmethod=None,
-                                      charset=None,
-                                      naturallanguage=None,
-                                      leaseduration=None,
-                                      timeinterval=None,
-                                      jobid=None) :
+                           userdata=None,
+                           recipient=None,
+                           pullmethod=None,
+                           charset=None,
+                           naturallanguage=None,
+                           leaseduration=None,
+                           timeinterval=None,
+                           jobid=None):
         """Creates a job, printer or server subscription.
-         
+
            uri : the subscription's uri, e.g. ipp://server
            events : a list of events to subscribe to, e.g. ["printer-added", "printer-deleted"]
            recipient : the notifier's uri
@@ -726,71 +788,71 @@ class CUPS :
            leaseduration : the duration of the lease in seconds
            timeinterval : the interval of time during notifications
            jobid : the optional job id in case of a job subscription
-        """   
-        if jobid is not None :
+        """
+        if jobid is not None:
             opid = IPP_CREATE_JOB_SUBSCRIPTION
             uritype = "job-uri"
-        else :
+        else:
             opid = IPP_CREATE_PRINTER_SUBSCRIPTION
             uritype = "printer-uri"
         req = self.newRequest(opid)
         req.operation[uritype] = ("uri", uri)
-        for event in events :
+        for event in events:
             req.subscription["notify-events"] = ("keyword", event)
-        if userdata is not None :    
+        if userdata is not None:
             req.subscription["notify-user-data"] = ("octetString-with-an-unspecified-format", userdata)
-        if recipient is not None :    
-            req.subscription["notify-recipient"] = ("uri", recipient)
-        if pullmethod is not None :
+        if recipient is not None:
+            req.subscription["notify-recipient-uri"] = ("uri", recipient)
+        if pullmethod is not None:
             req.subscription["notify-pull-method"] = ("keyword", pullmethod)
-        if charset is not None :
-            req.subscription["notify-charset"] = ("charset", charset)
-        if naturallanguage is not None :
-            req.subscription["notify-natural-language"] = ("naturalLanguage", naturallanguage)
-        if leaseduration is not None :
+        if charset is not None:
+            req.subscription["notify-charset"] = ("charset", charset or self.charset)
+        if naturallanguage is not None:
+            req.subscription["notify-natural-language"] = ("naturalLanguage", naturallanguage or self.language)
+        if leaseduration is not None:
             req.subscription["notify-lease-duration"] = ("integer", leaseduration)
-        if timeinterval is not None :
+        if timeinterval is not None:
             req.subscription["notify-time-interval"] = ("integer", timeinterval)
-        if jobid is not None :
+        if jobid is not None:
             req.subscription["notify-job-id"] = ("integer", jobid)
         return self.doRequest(req)
-            
-    def cancelSubscription(self, uri, subscriptionid, jobid=None) :    
+
+    def cancelSubscription(self, uri, subscriptionid, jobid=None):
         """Cancels a subscription.
-        
+
            uri : the subscription's uri.
            subscriptionid : the subscription's id.
            jobid : the optional job's id.
         """
         req = self.newRequest(IPP_CANCEL_SUBSCRIPTION)
-        if jobid is not None :
+        if jobid is not None:
             uritype = "job-uri"
-        else :
+        else:
             uritype = "printer-uri"
         req.operation[uritype] = ("uri", uri)
         req.event_notification["notify-subscription-id"] = ("integer", subscriptionid)
         return self.doRequest(req)
-        
-if __name__ == "__main__" :            
-    if (len(sys.argv) < 2) or (sys.argv[1] == "--debug") :
-        print "usage : python pkipplib.py /var/spool/cups/c00005 [--debug] (for example)\n"
-    else :    
+
+
+if __name__ == "__main__":
+    if (len(sys.argv) < 2) or (sys.argv[1] == "--debug"):
+        print("usage : python pkipplib.py /var/spool/cups/c00005 [--debug] (for example)\n")
+    else:
         infile = open(sys.argv[1], "rb")
         filedata = infile.read()
         infile.close()
-        
-        msg = IPPRequest(filedata, debug=(sys.argv[-1]=="--debug"))
+
+        msg = IPPRequest(filedata, debug=(sys.argv[-1] == "--debug"))
         msg.parse()
         msg2 = IPPRequest(msg.dump())
         msg2.parse()
         filedata2 = msg2.dump()
-        
-        if filedata == filedata2 :
-            print "Test OK : parsing original and parsing the output of the dump produce the same dump !"
-            print str(msg)
-        else :    
-            print "Test Failed !"
-            print str(msg)
-            print
-            print str(msg2)
-        
+
+        if filedata == filedata2:
+            print("Test OK : parsing original and parsing the output of the dump produce the same dump !")
+            print(str(msg))
+        else:
+            print("Test Failed !")
+            print(str(msg))
+            print()
+            print(str(msg2))

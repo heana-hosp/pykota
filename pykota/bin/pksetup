@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: ISO-8859-15 -*-
 #
 # PyKota
@@ -167,237 +167,252 @@ policy : external(pkusers --add --skipexisting --limitby noquota --description \
 """
 
 
-class PyKotaSetup :
+class PyKotaSetup:
     """Base class for PyKota installers."""
-    backendsdirectory = "/usr/lib/cups/backend" # overload it if needed
-    pykotadirectory = "/usr/share/pykota"       # overload it if needed
-    pgrestart = "/etc/init.d/postgresql* restart" # overload it if needed
+    backendsdirectory = "/usr/lib/cups/backend"  # overload it if needed
+    pykotadirectory = "/usr/share/pykota"  # overload it if needed
+    pgrestart = "/etc/init.d/postgresql* restart"  # overload it if needed
     cupsrestart = "/etc/init.d/cupsys restart"  # overload it if needed
-    adduser = "adduser --system --group --home /etc/pykota --gecos PyKota pykota" # overload it if needed
-    packages = [ "wget",
-                 "bzip2",
-                 "subversion",
-                 "postgresql",
-                 "postgresql-client",
-                 "pkpgcounter",
-                 "cupsys",
-                 "cupsys-client",
-                 "python-dev",
-                 "python-jaxml",
-                 "python-reportlab",
-                 "python-reportlab-accel",
-                 "python-psyco",
-                 "python-pygresql",
-                 "python-osd",
-                 "python-egenix-mxdatetime",
-                 "python-imaging",
-                 "python-pysnmp4",
-                 "python-chardet",
-                 "python-pam" ]
+    adduser = "adduser --system --group --home /etc/pykota --gecos PyKota pykota"  # overload it if needed
+    packages = ["wget",
+                "bzip2",
+                "subversion",
+                "postgresql",
+                "postgresql-client",
+                "pkpgcounter",
+                "cupsys",
+                "cupsys-client",
+                "python-dev",
+                "python-jaxml",
+                "python-reportlab",
+                "python-reportlab-accel",
+                "python-psyco",
+                "python-pygresql",
+                "python-osd",
+                "python-egenix-mxdatetime",
+                "python-imaging",
+                "python-pysnmp4",
+                "python-chardet",
+                "python-pam"]
 
-    otherpackages = [ { "name" : "pkipplib",
-                        "version" : "0.07",
-                        "url" : "http://www.pykota.com/software/%(name)s/download/tarballs/%(name)s-%(version)s.tar.gz",
-                        "commands" : [ "tar -zxf %(name)s-%(version)s.tar.gz",
-                                       "cd %(name)s-%(version)s",
-                                       "python setup.py install",
-                                     ],
+    otherpackages = [{"name": "pkipplib",
+                      "version": "0.07",
+                      "url": "http://www.pykota.com/software/%(name)s/download/tarballs/%(name)s-%(version)s.tar.gz",
+                      "commands": ["tar -zxf %(name)s-%(version)s.tar.gz",
+                                   "cd %(name)s-%(version)s",
+                                   "python setup.py install",
+                                   ],
                       },
-                      { "name" : "ghostpdl",
-                        "version" : "1.54",
-                        "url" : "http://mirror.cs.wisc.edu/pub/mirrors/ghost/GPL/%(name)s/%(name)s-%(version)s.tar.bz2",
-                        "commands" : [ "bunzip2 <%(name)s-%(version)s.tar.bz2 | tar -xf -",
-                                       "cd %(name)s-%(version)s",
-                                       "wget http://mirror.cs.wisc.edu/pub/mirrors/ghost/AFPL/GhostPCL/urwfonts-1.41.tar.bz2",
-                                       "bunzip2 <urwfonts-1.41.tar.bz2 | tar -xf -",
-                                       "mv urwfonts-1.41 urwfonts",
-                                       "make fonts",
-                                       "make pcl",
-                                       "make install",
-                                     ],
+                     {"name": "ghostpdl",
+                      "version": "1.54",
+                      "url": "http://mirror.cs.wisc.edu/pub/mirrors/ghost/GPL/%(name)s/%(name)s-%(version)s.tar.bz2",
+                      "commands": ["bunzip2 <%(name)s-%(version)s.tar.bz2 | tar -xf -",
+                                   "cd %(name)s-%(version)s",
+                                   "wget http://mirror.cs.wisc.edu/pub/mirrors/ghost/AFPL/GhostPCL/urwfonts-1.41.tar.bz2",
+                                   "bunzip2 <urwfonts-1.41.tar.bz2 | tar -xf -",
+                                   "mv urwfonts-1.41 urwfonts",
+                                   "make fonts",
+                                   "make pcl",
+                                   "make install",
+                                   ],
                       },
-                   ]
+                     ]
 
-    def __init__(self) :
+    def __init__(self):
         """Initializes instance specific datas."""
         self.launched = []
 
-    def yesno(self, message) :
+    def yesno(self, message):
         """Asks the end user some question and returns the answer."""
-        try :
-            return raw_input("\n%s ? " % message).strip().upper()[0] == 'Y'
-        except IndexError :
+        try:
+            return input(f"\n{message} ? ").strip().upper()[0] == 'Y'
+        except IndexError:
             return False
 
-    def confirmCommand(self, message, command, record=True) :
+    def confirmCommand(self, message, command, record=True):
         """Asks for confirmation before a command is launched, and launches it if needed."""
-        if self.yesno("The following command will be launched %(message)s :\n%(command)s\nDo you agree" % locals()) :
+        if self.yesno("The following command will be launched {message} :\n{command}\nDo you agree".format(**locals())):
             os.system(command)
-            if record :
+            if record:
                 self.launched.append(command)
             return True
-        else :
+        else:
             return False
 
-    def confirmPipe(self, message, command) :
+    def confirmPipe(self, message, command):
         """Asks for confirmation before a command is launched in a pipe, launches it if needed, and returns the result."""
-        if self.yesno("The following command will be launched %(message)s :\n%(command)s\nDo you agree" % locals()) :
+        if self.yesno("The following command will be launched {message} :\n{command}\nDo you agree".format(**locals())):
             pipeprocess = os.popen(command, "r")
             result = pipeprocess.read()
             pipeprocess.close()
             return result
-        else :
+        else:
             return False
 
-    def listPrinters(self) :
+    def listPrinters(self):
         """Returns a list of tuples (queuename, deviceuri) for all existing print queues."""
         result = os.popen("lpstat -v", "r")
         lines = result.readlines()
         result.close()
         printers = []
-        for line in lines :
+        for line in lines:
             (begin, end) = line.split(':', 1)
             deviceuri = end.strip()
             queuename = begin.split()[-1]
             printers.append((queuename, deviceuri))
         return printers
 
-    def downloadOtherPackages(self) :
+    def downloadOtherPackages(self):
         """Downloads and install additional packages from http://www.pykota.com or other websites"""
         olddirectory = os.getcwd()
         directory = tempfile.mkdtemp()
-        print "\nDownloading additional software not available as packages in %(directory)s" % locals()
+        print("\nDownloading additional software not available as packages in {directory}".format(**locals()))
         os.chdir(directory)
-        for package in self.otherpackages :
+        for package in self.otherpackages:
             name = package["name"]
             version = package["version"]
             url = package["url"] % locals()
             commands = " && ".join(package["commands"]) % locals()
-            if url.startswith("svn://") :
-                download = 'svn export "%(url)s" %(name)s' % locals()
-            else :
-                download = 'wget "%(url)s"' % locals()
-            if self.confirmCommand("to download %(name)s" % locals(), download) :
-                self.confirmCommand("to install %(name)s" % locals(), commands)
-        self.confirmCommand("to remove the temporary directory %(directory)s" % locals(),
-                            "rm -fr %(directory)s" % locals(),
+            if url.startswith("svn://"):
+                download = 'svn export "{url}" {name}'.format(**locals())
+            else:
+                download = 'wget "{url}"'.format(**locals())
+            if self.confirmCommand("to download {name}".format(**locals()), download):
+                self.confirmCommand("to install {name}".format(**locals()), commands)
+        self.confirmCommand("to remove the temporary directory {directory}".format(**locals()),
+                            "rm -fr {directory}".format(**locals()),
                             record=False)
         os.chdir(olddirectory)
 
-    def waitPrintersOnline(self) :
+    def waitPrintersOnline(self):
         """Asks the admin to switch all printers ON."""
-        while not self.yesno("First you MUST switch ALL your printers ON. Are ALL your printers ON") :
+        while not self.yesno("First you MUST switch ALL your printers ON. Are ALL your printers ON"):
             pass
 
-    def setupDatabase(self) :
+    def setupDatabase(self):
         """Creates the database."""
         pykotadirectory = self.pykotadirectory
-        self.confirmCommand("to create PyKota's database in PostgreSQL", 'su - postgres -c "psql -f %(pykotadirectory)s/postgresql/pykota-postgresql.sql template1"' % locals())
+        self.confirmCommand("to create PyKota's database in PostgreSQL",
+                            'su - postgres -c "psql -f %(pykotadirectory)s/postgresql/pykota-postgresql.sql template1"' % locals())
 
-    def configurePostgreSQL(self) :
+    def configurePostgreSQL(self):
         """Configures PostgreSQL for PyKota to work."""
-        pgconffiles = self.confirmPipe("to find PostgreSQL's configuration files", "find /etc -name postgresql.conf 2>/dev/null")
-        if pgconffiles is not False :
+        pgconffiles = self.confirmPipe("to find PostgreSQL's configuration files",
+                                       "find /etc -name postgresql.conf 2>/dev/null")
+        if pgconffiles is not False:
             pgconffiles = [part.strip() for part in pgconffiles.split()]
             pgconfdirs = [os.path.split(pgconffile)[0] for pgconffile in pgconffiles]
-            for i in range(len(pgconfdirs)) :
+            for i in range(len(pgconfdirs)):
                 pgconfdir = pgconfdirs[i]
                 pgconffile = pgconffiles[i]
-                if (len(pgconfdirs) == 1) or self.yesno("Do PostgreSQL configuration files reside in %(pgconfdir)s" % locals()) :
-                    answer = self.confirmPipe("to see if PostgreSQL accepts TCP/IP connections", "grep ^tcpip_socket %(pgconffile)s" % locals())
+                if (len(pgconfdirs) == 1) or self.yesno(
+                        "Do PostgreSQL configuration files reside in {pgconfdir}".format(**locals())):
+                    answer = self.confirmPipe("to see if PostgreSQL accepts TCP/IP connections",
+                                              "grep ^tcpip_socket {pgconffile}".format(**locals()))
                     conflines = pghbaconf.split("\n")
-                    if answer is not False :
+                    if answer is not False:
                         tcpip = answer.strip().lower().endswith("true")
-                    else :
+                    else:
                         tcpip = False
-                    if tcpip :
+                    if tcpip:
                         conflines.insert(2, "host\tpykota\tpykotaadmin,pykotauser\t127.0.0.1\t255.255.255.255\tmd5")
-                    else :
+                    else:
                         conflines.insert(1, "local\tpykota\tpykotaadmin,pykotauser\t\tmd5")
                     conf = "\n".join(conflines)
-                    self.confirmCommand("to configure PostgreSQL correctly for PyKota", 'echo "%(conf)s" >%(pgconfdir)s/pg_hba.conf' % locals())
+                    self.confirmCommand("to configure PostgreSQL correctly for PyKota",
+                                        'echo "{conf}" >{pgconfdir}/pg_hba.conf'.format(**locals()))
                     self.confirmCommand("to make PostgreSQL take the changes into account", self.pgrestart)
                     return tcpip
         return None
 
-    def genConfig(self, adminname, adminemail, dnsdomain, smtpserver, home, tcpip) :
+    def genConfig(self, adminname, adminemail, dnsdomain, smtpserver, home, tcpip):
         """Generates minimal configuration files for PyKota."""
-        if tcpip :
+        if tcpip:
             storageserver = "localhost"
-        else :
+        else:
             storageserver = ""
         conf = pykotaconf % locals()
-        self.confirmCommand("to generate PyKota's main configuration file", 'echo "%(conf)s" >%(home)s/pykota.conf' % locals())
+        self.confirmCommand("to generate PyKota's main configuration file",
+                            'echo "{conf}" >{home}/pykota.conf'.format(**locals()))
         conf = pykotadminconf % locals()
-        self.confirmCommand("to generate PyKota's administrators configuration file", 'echo "%(conf)s" >%(home)s/pykotadmin.conf' % locals())
-        self.confirmCommand("to change permissions on PyKota's administrators configuration file", "chmod 640 %(home)s/pykotadmin.conf" % locals())
-        self.confirmCommand("to change permissions on PyKota's main configuration file", "chmod 644 %(home)s/pykota.conf" % locals())
-        self.confirmCommand("to change ownership of PyKota's configuration files", "chown pykota.pykota %(home)s/pykota.conf %(home)s/pykotadmin.conf" % locals())
-        answer = self.confirmPipe("to automatically detect the best settings for your printers", "pkturnkey --doconf 2>/dev/null")
-        if answer is not False :
+        self.confirmCommand("to generate PyKota's administrators configuration file",
+                            'echo "{conf}" >{home}/pykotadmin.conf'.format(**locals()))
+        self.confirmCommand("to change permissions on PyKota's administrators configuration file",
+                            "chmod 640 {home}/pykotadmin.conf".format(**locals()))
+        self.confirmCommand("to change permissions on PyKota's main configuration file",
+                            "chmod 644 {home}/pykota.conf".format(**locals()))
+        self.confirmCommand("to change ownership of PyKota's configuration files",
+                            "chown pykota.pykota {home}/pykota.conf {home}/pykotadmin.conf".format(**locals()))
+        answer = self.confirmPipe("to automatically detect the best settings for your printers",
+                                  "pkturnkey --doconf 2>/dev/null")
+        if answer is not False:
             lines = answer.split("\n")
             begin = end = None
-            for i in range(len(lines)) :
+            for i in range(len(lines)):
                 line = lines[i]
-                if line.strip().startswith("--- CUT ---") :
-                    if begin is None :
+                if line.strip().startswith("--- CUT ---"):
+                    if begin is None:
                         begin = i
-                    else :
+                    else:
                         end = i
 
-            if (begin is not None) and (end is not None) :
-                suffix = "\n".join(lines[begin+1:end])
-                self.confirmCommand("to improve PyKota's configuration wrt your existing printers", 'echo "%(suffix)s" >>%(home)s/pykota.conf' % locals())
+            if (begin is not None) and (end is not None):
+                suffix = "\n".join(lines[begin + 1:end])
+                self.confirmCommand("to improve PyKota's configuration wrt your existing printers",
+                                    'echo "{suffix}" >>{home}/pykota.conf'.format(**locals()))
 
-    def addPyKotaUser(self) :
+    def addPyKotaUser(self):
         """Adds a system user named pykota, returns its home directory or None"""
-        try :
+        try:
             user = pwd.getpwnam("pykota")
-        except KeyError :
-            if self.confirmCommand("to create a system user named 'pykota'", self.adduser) :
-                try :
+        except KeyError:
+            if self.confirmCommand("to create a system user named 'pykota'", self.adduser):
+                try:
                     return pwd.getpwnam("pykota")[5]
-                except KeyError :
+                except KeyError:
                     return None
-            else :
+            else:
                 return None
-        else :
+        else:
             return user[5]
 
-    def setupBackend(self) :
+    def setupBackend(self):
         """Installs the cupspykota backend."""
         backend = os.path.join(self.backendsdirectory, "cupspykota")
-        if not os.path.exists(backend) :
+        if not os.path.exists(backend):
             realbackend = os.path.join(self.pykotadirectory, "cupspykota")
-            self.confirmCommand("to make PyKota known to CUPS", "ln -s %(realbackend)s %(backend)s" % locals())
+            self.confirmCommand("to make PyKota known to CUPS", "ln -s {realbackend} {backend}".format(**locals()))
             self.confirmCommand("to restart CUPS for the changes to take effect", self.cupsrestart)
 
-    def managePrinters(self, printers) :
+    def managePrinters(self, printers):
         """For each printer, asks if it should be managed with PyKota or not."""
-        for (queuename, deviceuri) in printers :
-            command = 'pkprinters --add --cups --description "Printer created with pksetup" "%(queuename)s"' % locals()
-            self.confirmCommand("to import the %(queuename)s print queue into PyKota's database and reroute it through PyKota" % locals(), command)
+        for (queuename, deviceuri) in printers:
+            command = 'pkprinters --add --cups --description "Printer created with pksetup" "{queuename}"'.format(
+                **locals())
+            self.confirmCommand(
+                "to import the {queuename} print queue into PyKota's database and reroute it through PyKota".format(
+                    **locals()), command)
 
-    def installPyKotaFiles(self) :
+    def installPyKotaFiles(self):
         """Installs PyKota files through Python's Distutils mechanism."""
         pksetupdir = os.path.split(os.path.abspath(sys.argv[0]))[0]
         pykotadir = os.path.abspath(os.path.join(pksetupdir, ".."))
         setuppy = os.path.join(pykotadir, "setup.py")
-        if os.path.exists(setuppy) :
-            self.confirmCommand("to install PyKota files on your system", "python %(setuppy)s install" % locals())
+        if os.path.exists(setuppy):
+            self.confirmCommand("to install PyKota files on your system", "python {setuppy} install".format(**locals()))
 
-    def setup(self) :
+    def setup(self):
         """Installation procedure."""
         self.installPyKotaFiles()
         self.waitPrintersOnline()
-        adminname = raw_input("What is the name of the print administrator ? ").strip()
-        adminemail = raw_input("What is the email address of the print administrator ? ").strip()
-        dnsdomain = raw_input("What is your DNS domain name ? ").strip()
-        smtpserver = raw_input("What is the hostname or IP address of your SMTP server ? ").strip()
+        adminname = input("What is the name of the print administrator ? ").strip()
+        adminemail = input("What is the email address of the print administrator ? ").strip()
+        dnsdomain = input("What is your DNS domain name ? ").strip()
+        smtpserver = input("What is the hostname or IP address of your SMTP server ? ").strip()
         homedirectory = self.addPyKotaUser()
-        if homedirectory is None :
+        if homedirectory is None:
             sys.stderr.write("Installation can't proceed. You MUST create a system user named 'pykota'.\n")
-        else :
+        else:
             self.upgradeSystem()
             self.setupPackages()
             self.downloadOtherPackages()
@@ -406,59 +421,63 @@ class PyKotaSetup :
             self.setupDatabase()
             self.setupBackend()
             self.managePrinters(self.listPrinters())
-            print nowready
-            print "The script %s can be used to reinstall in unattended mode.\n" % self.genInstaller()
+            print(nowready)
+            print(f"The script {self.genInstaller()} can be used to reinstall in unattended mode.\n")
 
-    def genInstaller(self) :
+    def genInstaller(self):
         """Generates an installer script."""
         scriptname = "/tmp/pykota-installer.sh"
-        commands = [ "#! /bin/sh",
-                     "#",
-                     "# PyKota installer script.",
-                     "#",
-                     "# This script was automatically generated.",
-                     "#",
-                   ] + self.launched
+        commands = ["#! /bin/sh",
+                    "#",
+                    "# PyKota installer script.",
+                    "#",
+                    "# This script was automatically generated.",
+                    "#",
+                    ] + self.launched
         script = open(scriptname, "w")
         script.write("\n".join(commands))
         script.close()
-        os.chmod(scriptname, \
+        os.chmod(scriptname,
                  stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
         return scriptname
 
 
-class Debian(PyKotaSetup) :
+class Debian(PyKotaSetup):
     """Class for Debian installer."""
-    def setupPackages(self) :
-        """Installs missing Debian packages."""
-        self.confirmCommand("to install missing dependencies", "apt-get install %s" % " ".join(self.packages))
 
-    def upgradeSystem(self) :
+    def setupPackages(self):
+        """Installs missing Debian packages."""
+        self.confirmCommand("to install missing dependencies", f"apt-get install {' '.join(self.packages)}")
+
+    def upgradeSystem(self):
         """Upgrades the Debian setup."""
-        if self.confirmCommand("to grab an up-to-date list of available packages", "apt-get update") :
+        if self.confirmCommand("to grab an up-to-date list of available packages", "apt-get update"):
             self.confirmCommand("to put your system up-to-date", "apt-get -y dist-upgrade")
 
-class Ubuntu(Debian) :
+
+class Ubuntu(Debian):
     """Class for Ubuntu installer."""
     pass
 
-if __name__ == "__main__" :
+
+if __name__ == "__main__":
     retcode = 0
-    if (len(sys.argv) != 2) or (sys.argv[1] == "-h") or (sys.argv[1] == "--help") :
-        print "pksetup v0.1 (c) 2003-2007 Jerome Alet - alet@librelogiciel.com\n\nusage : pksetup distribution\n\ne.g. : pksetup debian\n\nIMPORTANT : only Debian and Ubuntu are currently supported."
-    elif (sys.argv[1] == "-v") or (sys.argv[1] == "--version") :
-        print "0.1" # pksetup's own version number
-    else :
+    if (len(sys.argv) != 2) or (sys.argv[1] == "-h") or (sys.argv[1] == "--help"):
+        print(
+            "pksetup v0.1 (c) 2003-2007 Jerome Alet - alet@librelogiciel.com\n\nusage : pksetup distribution\n\ne.g. : pksetup debian\n\nIMPORTANT : only Debian and Ubuntu are currently supported.")
+    elif (sys.argv[1] == "-v") or (sys.argv[1] == "--version"):
+        print("0.1")  # pksetup's own version number
+    else:
         classname = sys.argv[1].strip().title()
-        try :
+        try:
             installer = globals()[classname]()
-        except KeyError :
+        except KeyError:
             sys.stderr.write("There's currently no support for the %s distribution, sorry.\n" % sys.argv[1])
             retcode = -1
-        else :
-            try :
+        else:
+            try:
                 retcode = installer.setup()
-            except KeyboardInterrupt :
+            except KeyboardInterrupt:
                 sys.stderr.write("\n\n\nWARNING : Setup was aborted at user's request !\n\n")
                 retcode = -1
     sys.exit(retcode)

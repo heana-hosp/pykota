@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: ISO-8859-15 -*-
 
 # PyKota Print Quota Editor 
@@ -29,9 +29,9 @@ import os
 import pwd
 import time
 
-try :
+try:
     import pyosd
-except ImportError :    
+except ImportError:
     sys.stderr.write("Sorry ! You need both xosd and the Python OSD library (pyosd) for this software to work.\n")
     sys.exit(-1)
 
@@ -77,104 +77,106 @@ examples :
 """)
 
 
-class PyKOSD(PyKotaTool) :
+class PyKOSD(PyKotaTool):
     """A class for an On Screen Display print quota monitor."""
-    def main(self, args, options) :
+
+    def main(self, args, options):
         """Main function starts here."""
-        try :    
+        try:
             duration = int(options["duration"])
-            if duration <= 0 :
-                raise ValueError 
-        except :    
-            raise PyKotaCommandLineError, _("Invalid duration option %s") % str(options["duration"])
-            
-        try :    
+            if duration <= 0:
+                raise ValueError
+        except:
+            raise PyKotaCommandLineError(f"Invalid duration option {str(options['duration'])}")
+
+        try:
             loop = int(options["loop"])
-            if loop < 0 :
+            if loop < 0:
                 raise ValueError
-        except :    
-            raise PyKotaCommandLineError, _("Invalid loop option %s") % str(options["loop"])
-            
-        try :    
+        except:
+            raise PyKotaCommandLineError(f"Invalid loop option {str(options['loop'])}")
+
+        try:
             sleep = float(options["sleep"])
-            if sleep <= 0 :
+            if sleep <= 0:
                 raise ValueError
-        except :    
-            raise PyKotaCommandLineError, _("Invalid sleep option %s") % str(options["sleep"])
-            
-        color = options["color"]    
-        if not color.startswith("#") :
-            color = "#%s" % color
-        if len(color) != 7 :    
-            raise PyKotaCommandLineError, _("Invalid color option %s") % str(color)
+        except:
+            raise PyKotaCommandLineError(f"Invalid sleep option {str(options['sleep'])}")
+
+        color = options["color"]
+        if not color.startswith("#"):
+            color = f"#{color}"
+        if len(color) != 7:
+            raise PyKotaCommandLineError(f"Invalid color option {str(color)}")
         savecolor = color
-        
+
         uname = pwd.getpwuid(os.getuid())[0]
-        while 1 :
+        while 1:
             color = savecolor
-            user = self.storage.getUserFromBackend(uname)        # don't use cache
-            if not user.Exists :
-                raise PyKotaCommandLineError, _("User %s doesn't exist in PyKota's database") % uname
-            if user.LimitBy == "quota" :    
+            user = self.storage.getUserFromBackend(uname)  # don't use cache
+            if not user.Exists:
+                raise PyKotaCommandLineError(f"User {uname} doesn't exist in PyKota's database")
+            if user.LimitBy == "quota":
                 printers = self.storage.getMatchingPrinters("*")
-                upquotas = [ self.storage.getUserPQuotaFromBackend(user, p) for p in printers ] # don't use cache
+                upquotas = [self.storage.getUserPQuotaFromBackend(user, p) for p in printers]  # don't use cache
                 nblines = len(upquotas)
                 display = pyosd.osd(font=options["font"], colour=color, timeout=duration, shadow=2, lines=nblines)
-                for line in range(nblines) :
+                for line in range(nblines):
                     upq = upquotas[line]
-                    if upq.HardLimit is None :
-                        if upq.SoftLimit is None :
-                            percent = "%s" % upq.PageCounter
-                        else :        
-                            percent = "%s%%" % min((upq.PageCounter * 100) / upq.SoftLimit, 100)
-                    else :        
-                        percent = "%s%%" % min((upq.PageCounter * 100) / upq.HardLimit, 100)
-                    display.display(_("Pages used on %s : %s") % (upq.Printer.Name, percent), type=pyosd.TYPE_STRING, line=line)
-            elif user.LimitBy == "balance" :
-                if user.AccountBalance <= self.config.getBalanceZero() :
+                    if upq.HardLimit is None:
+                        if upq.SoftLimit is None:
+                            percent = f"{upq.PageCounter}"
+                        else:
+                            percent = f"{min((upq.PageCounter * 100) / upq.SoftLimit, 100)}%"
+                    else:
+                        percent = f"{min((upq.PageCounter * 100) / upq.HardLimit, 100)}%"
+                    display.display(f"Pages used on {upq.Printer.Name} : {percent}", type=pyosd.TYPE_STRING, line=line)
+            elif user.LimitBy == "balance":
+                if user.AccountBalance <= self.config.get_balance_zero():
                     color = "#FF0000"
                 display = pyosd.osd(font=options["font"], colour=color, timeout=duration, shadow=2)
-                display.display(_("PyKota Units left : %.2f") % user.AccountBalance, type=pyosd.TYPE_STRING)
-            elif user.LimitBy == "noprint" :    
+                display.display(f"PyKota Units left : {user.AccountBalance:.2f}", type=pyosd.TYPE_STRING)
+            elif user.LimitBy == "noprint":
                 display = pyosd.osd(font=options["font"], colour="#FF0000", timeout=duration, shadow=2)
-                display.display(_("Printing denied."), type=pyosd.TYPE_STRING)
-            elif user.LimitBy == "noquota" :    
+                display.display("Printing denied.", type=pyosd.TYPE_STRING)
+            elif user.LimitBy == "noquota":
                 display = pyosd.osd(font=options["font"], colour=savecolor, timeout=duration, shadow=2)
-                display.display(_("Printing not limited."), type=pyosd.TYPE_STRING)
-            elif user.LimitBy == "nochange" :    
+                display.display("Printing not limited.", type=pyosd.TYPE_STRING)
+            elif user.LimitBy == "nochange":
                 display = pyosd.osd(font=options["font"], colour=savecolor, timeout=duration, shadow=2)
-                display.display(_("Printing not limited, no accounting."), type=pyosd.TYPE_STRING)
-            else :    
-                raise PyKotaToolError, "Incorrect limitation factor %s for user %s" % (repr(user.LimitBy), user.Name)
-                
+                display.display("Printing not limited, no accounting.", type=pyosd.TYPE_STRING)
+            else:
+                raise PyKotaToolError(f"Incorrect limitation factor {repr(user.LimitBy)} for user {user.Name}")
+
             time.sleep(duration + 1)
-            if loop :
+            if loop:
                 loop -= 1
-                if not loop :
+                if not loop:
                     break
-            time.sleep(sleep)        
-            
-        return 0    
-        
-if __name__ == "__main__" :
+            time.sleep(sleep)
+
+        return 0
+
+
+if __name__ == "__main__":
     retcode = -1
-    try :
-        defaults = { \
-                     "color" : "#00FF00", \
-                     "duration" : "3", \
-                     "font" : pyosd.default_font, \
-                     "loop" : "0", \
-                     "sleep" : "180", \
-                   }
+    try:
+        defaults = {
+            "color": "#00FF00",
+            "duration": "3",
+            "font": pyosd.default_font,
+            "loop": "0",
+            "sleep": "180",
+        }
         short_options = "hvc:d:f:l:s:"
         long_options = ["help", "version", "color=", "colour=", "duration=", "font=", "loop=", "sleep="]
-        
+
         cmd = PyKOSD(doc=__doc__)
         cmd.deferredInit()
-        
+
         # parse and checks the command line
         (options, args) = cmd.parseCommandline(sys.argv[1:], short_options, long_options, allownothing=1)
-        
+
         # sets long options
         options["help"] = options["h"] or options["help"]
         options["version"] = options["v"] or options["version"]
@@ -183,32 +185,32 @@ if __name__ == "__main__" :
         options["font"] = options["f"] or options["font"] or defaults["font"]
         options["loop"] = options["l"] or options["loop"] or defaults["loop"]
         options["sleep"] = options["s"] or options["sleep"] or defaults["sleep"]
-        
-        if options["help"] :
+
+        if options["help"]:
             cmd.display_usage_and_quit()
-        elif options["version"] :
+        elif options["version"]:
             cmd.display_version_and_quit()
-        else :    
+        else:
             retcode = cmd.main(args, options)
-    except KeyboardInterrupt :
+    except KeyboardInterrupt:
         retcode = 0
-    except KeyboardInterrupt :        
+    except KeyboardInterrupt:
         sys.stderr.write("\nInterrupted with Ctrl+C !\n")
         retcode = -3
-    except PyKotaCommandLineError, msg :    
-        sys.stderr.write("%s : %s\n" % (sys.argv[0], msg))
+    except PyKotaCommandLineError as msg:
+        sys.stderr.write(f"{sys.argv[0]} : {msg}\n")
         retcode = -2
-    except SystemExit :        
+    except SystemExit:
         pass
-    except :    
-        try :
+    except:
+        try:
             cmd.crashed("pykosd failed")
-        except :    
+        except:
             crashed("pykosd failed")
-        
-    try :
+
+    try:
         cmd.storage.close()
-    except :    
+    except:
         pass
-        
+
     sys.exit(retcode)

@@ -2,7 +2,7 @@
 
 # Tea4CUPS : Tee for CUPS
 #
-# (c) 2005, 2006 Jerome Alet <alet@librelogiciel.com>
+# (c) 2005-2018 Jerome Alet <alet@librelogiciel.com>
 # (c) 2005 Peter Stuge <stuge-tea4cups@cdy.org>
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #
-# $Id: clean.sh 110 2006-06-27 11:28:09Z jerome $
+# $Id: clean.sh 3576 2018-08-23 00:29:57Z jerome $
 #
 #
 # Use this to clean the tree from temporary files

@@ -1,5 +1,21 @@
-#! /usr/bin/env python
-# -*- coding: ISO-8859-15 -*-
+#! /usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# pkipplib : IPP and CUPS support for Python
+#
+# (c) 2003-2013 Jerome Alet <alet@librelogiciel.com>
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
 """This command can be placed in /usr/lib/cups/notifier and
@@ -17,25 +33,25 @@ import fcntl
 
 from pkipplib import pkipplib
 
-if __name__ == "__main__" :
+if __name__ == "__main__":
     #
     # First thing we do is put stdin in non-blocking mode.
     fd = sys.stdin.fileno()
-    fcntl.fcntl(sys.stdin.fileno(), fcntl.F_SETFL, 
-                    fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK)
+    fcntl.fcntl(sys.stdin.fileno(), fcntl.F_SETFL,
+                fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK)
 
     # then we read the notification CUPS sent us to our stdin
     notification = pkipplib.IPPRequest(sys.stdin.read())
-    
+
     # now we parse it
     notification.parse()
-    
+
     # then we act one way or another, depending on the event received.
     event = notification.event_notification["notify-subscribed-event"][0][1]
-    if event in ("printer-added", "printer-deleted") :
+    if event in ("printer-added", "printer-deleted"):
         printername = notification.event_notification["printer-name"][0][1]
-        if event.endswith("-added") :
+        if event.endswith("-added"):
             action = "add"
-        else :    
+        else:
             action = "delete"
-        os.system('/usr/bin/pkprinters --%s "%s"' % (action, printername))
+        os.system(f'/usr/bin/pkprinters --{action} "{printername}"')

@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: ISO-8859-15 -*-
 
 # PyKota Print Quota Reports generator
@@ -28,7 +28,7 @@ import sys
 import os
 import pwd
 
-from mx import DateTime
+from datetime import datetime
 
 from pykota.tool import PyKotaTool, PyKotaToolError, PyKotaCommandLineError, crashed, N_
 from pykota import reporter
@@ -106,7 +106,7 @@ class RePyKota(PyKotaTool) :
         else :        
             # reports only the current user
             if options["ingroups"] :
-                raise PyKotaCommandLineError, _("Option --ingroups is reserved to PyKota Administrators.")
+                raise PyKotaCommandLineError("Option --ingroups is reserved to PyKota Administrators.")
                 
             username = pwd.getpwuid(os.geteuid())[0]
             if options["groups"] :
@@ -120,10 +120,10 @@ class RePyKota(PyKotaTool) :
         
         printers = self.storage.getMatchingPrinters(options["printer"])
         if not printers :
-            raise PyKotaCommandLineError, _("There's no printer matching %s") % options["printer"]
+            raise PyKotaCommandLineError("There's no printer matching %s" % options["printer"])
             
         self.reportingtool = reporter.openReporter(self, "text", printers, ugnames, (options["groups"] and 1) or 0)    
-        print self.reportingtool.generateReport()
+        print(self.reportingtool.generate_report())
                     
 if __name__ == "__main__" : 
     retcode = 0
@@ -154,13 +154,13 @@ if __name__ == "__main__" :
         elif options["version"] :
             reportTool.display_version_and_quit()
         elif (options["users"] or options["ingroups"]) and options["groups"] :
-            raise PyKotaCommandLineError, _("incompatible options, see help.")
+            raise PyKotaCommandLineError("incompatible options, see help.")
         else :
             retcode = reportTool.main(args, options)
     except KeyboardInterrupt :        
         sys.stderr.write("\nInterrupted with Ctrl+C !\n")
         retcode = -3
-    except PyKotaCommandLineError, msg :    
+    except PyKotaCommandLineError as msg :
         sys.stderr.write("%s : %s\n" % (sys.argv[0], msg))
         retcode = -2
     except SystemExit :        

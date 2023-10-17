@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: ISO-8859-15 -*-
 
 # PyKota Billing Codes manager
@@ -81,142 +81,142 @@ examples :
   
   This will list all billing codes which name begins with 'my'.
 """)
-        
-class PKBcodes(PyKotaTool) :        
+
+
+class PKBcodes(PyKotaTool):
     """A class for a billing codes manager."""
-    def modifyBillingCode(self, billingcode, reset, description) :
+
+    def modifyBillingCode(self, billingcode, reset, description):
         """Modifies a billing code."""
-        if reset :
-            billingcode.reset()    
-        if description is not None : # NB : "" is allowed !
+        if reset:
+            billingcode.reset()
+        if description is not None:  # NB : "" is allowed !
             billingcode.setDescription(description)
-        
-    def main(self, names, options) :
+
+    def main(self, names, options):
         """Manage billing codes."""
-        if (not self.config.isAdmin) and (not options["list"]) :
-            raise PyKotaCommandLineError, "%s : %s" % (pwd.getpwuid(os.geteuid())[0], _("You're not allowed to use this command."))
-            
-        if not options["list"] :    
+        if (not self.config.isAdmin) and (not options["list"]):
+            raise PyKotaCommandLineError(
+                "{} : {}".format(pwd.getpwuid(os.geteuid())[0], "You're not allowed to use this command."))
+
+        if not options["list"]:
             percent = Percent(self)
-            
-        if not options["add"] :
-            if not options["list"] :
-                percent.display("%s..." % _("Extracting datas"))
-            if not names :      # NB : can't happen for --delete because it's catched earlier
+
+        if not options["add"]:
+            if not options["list"]:
+                percent.display(f"{'Extracting datas'}...")
+            if not names:  # NB : can't happen for --delete because it's catched earlier
                 names = ["*"]
             billingcodes = self.storage.getMatchingBillingCodes(",".join(names))
-            if not billingcodes :
-                if not options["list"] :
+            if not billingcodes:
+                if not options["list"]:
                     percent.display("\n")
-                raise PyKotaCommandLineError, _("There's no billingcode matching %s") % " ".join(names)
-            if not options["list"] :    
+                raise PyKotaCommandLineError(f"There's no billingcode matching {' '.join(names)}")
+            if not options["list"]:
                 percent.setSize(len(billingcodes))
-                        
-        if options["list"] :
-            for billingcode in billingcodes :
-                print "%s [%s] %s %s %s %.2f %s" % \
-                      (billingcode.BillingCode, billingcode.Description, \
-                       billingcode.PageCounter, \
-                       _("pages"), \
-                       _("and"), \
-                       billingcode.Balance, \
-                       _("credits"))
-        elif options["delete"] :    
-            percent.display("\n%s..." % _("Deletion"))
+
+        if options["list"]:
+            for billingcode in billingcodes:
+                print(
+                    f"{billingcode.BillingCode} [{billingcode.Description}] {billingcode.PageCounter} {'pages'} {'and'} {billingcode.Balance:.2f} {'credits'}")
+        elif options["delete"]:
+            percent.display(f"\nDeletion...")
             self.storage.deleteManyBillingCodes(billingcodes)
             percent.display("\n")
-        else :
+        else:
             reset = options["reset"]
             description = options["description"]
-            if description :
+            if description:
                 description = options["description"].strip()
-            skipexisting = options["skipexisting"]        
-            
+            skipexisting = options["skipexisting"]
+
             self.storage.beginTransaction()
-            try :
-                if options["add"] :    
-                    percent.display("%s...\n" % _("Creation"))
+            try:
+                if options["add"]:
+                    percent.display(f"Creation...\n")
                     percent.setSize(len(names))
-                    for bname in names :
+                    for bname in names:
                         billingcode = StorageBillingCode(self.storage, bname)
                         self.modifyBillingCode(billingcode, reset, description)
                         oldbillingcode = self.storage.addBillingCode(billingcode)
-                        if oldbillingcode is not None :
-                            if skipexisting :
-                                self.logdebug(_("Billing code [%s] already exists, skipping.") % bname)
-                            else :    
-                                self.logdebug(_("Billing code [%s] already exists, will be modified.") % bname)
+                        if oldbillingcode is not None:
+                            if skipexisting:
+                                self.logdebug(f"Billing code [{bname}] already exists, skipping.")
+                            else:
+                                self.logdebug(f"Billing code [{bname}] already exists, will be modified.")
                                 self.modifyBillingCode(oldbillingcode, reset, description)
                                 oldbillingcode.save()
                         percent.oneMore()
-                else :        
-                    percent.display("\n%s...\n" % _("Modification"))
-                    for billingcode in billingcodes :
+                else:
+                    percent.display("\nModification...\n")
+                    for billingcode in billingcodes:
                         self.modifyBillingCode(billingcode, reset, description)
-                        billingcode.save()    
+                        billingcode.save()
                         percent.oneMore()
-            except :                    
+            except:
                 self.storage.rollbackTransaction()
                 raise
-            else :    
+            else:
                 self.storage.commitTransaction()
-                        
-        if not options["list"] :
+
+        if not options["list"]:
             percent.done()
-                     
-if __name__ == "__main__" : 
+
+
+if __name__ == "__main__":
     retcode = 0
-    try :
+    try:
         short_options = "hvaD:dlrs"
         long_options = ["help", "version", "add", "description=", "delete", "list", "reset", "skipexisting"]
-        
+
         # Initializes the command line tool
         manager = PKBcodes(doc=__doc__)
         manager.deferredInit()
-        
+
         # parse and checks the command line
         (options, args) = manager.parseCommandline(sys.argv[1:], short_options, long_options)
-        
+
         # sets long options
         options["help"] = options["h"] or options["help"]
         options["version"] = options["v"] or options["version"]
         options["add"] = options["a"] or options["add"]
         options["description"] = options["D"] or options["description"]
-        options["delete"] = options["d"] or options["delete"] 
+        options["delete"] = options["d"] or options["delete"]
         options["list"] = options["l"] or options["list"]
         options["reset"] = options["r"] or options["reset"]
         options["skipexisting"] = options["s"] or options["skipexisting"]
-        
-        if options["help"] :
+
+        if options["help"]:
             manager.display_usage_and_quit()
-        elif options["version"] :
+        elif options["version"]:
             manager.display_version_and_quit()
         elif (options["delete"] and (options["add"] or options["reset"] or options["description"])) \
-           or (options["skipexisting"] and not options["add"]) \
-           or (options["list"] and (options["add"] or options["delete"] or options["reset"] or options["description"])) :
-            raise PyKotaCommandLineError, _("incompatible options, see help.")
-        elif (not args) and (options["add"] or options["delete"]) :    
-            raise PyKotaCommandLineError, _("You have to pass billing codes on the command line")
-        else :
+                or (options["skipexisting"] and not options["add"]) \
+                or (options["list"] and (
+                options["add"] or options["delete"] or options["reset"] or options["description"])):
+            raise PyKotaCommandLineError("incompatible options, see help.")
+        elif (not args) and (options["add"] or options["delete"]):
+            raise PyKotaCommandLineError("You have to pass billing codes on the command line")
+        else:
             retcode = manager.main(args, options)
-    except KeyboardInterrupt :        
+    except KeyboardInterrupt:
         sys.stderr.write("\nInterrupted with Ctrl+C !\n")
         retcode = -3
-    except PyKotaCommandLineError, msg :    
-        sys.stderr.write("%s : %s\n" % (sys.argv[0], msg))
+    except PyKotaCommandLineError as msg:
+        sys.stderr.write(f"{sys.argv[0]} : {msg}\n")
         retcode = -2
-    except SystemExit :        
+    except SystemExit:
         pass
-    except :
-        try :
+    except:
+        try:
             manager.crashed("pkbcodes failed")
-        except :    
+        except:
             crashed("pkbcodes failed")
         retcode = -1
 
-    try :
+    try:
         manager.storage.close()
-    except (TypeError, NameError, AttributeError) :    
+    except (TypeError, NameError, AttributeError):
         pass
-        
-    sys.exit(retcode)    
+
+    sys.exit(retcode)

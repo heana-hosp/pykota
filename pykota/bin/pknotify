@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: ISO-8859-15 -*-
 
 # A notifier for PyKota
@@ -28,13 +28,15 @@ import sys
 import socket
 import errno
 import signal
-import xmlrpclib
+# import xmlrpclib
+from xmlrpc import client
+from xmlrpc import server
 
-try :
+try:
     import PAM
-except ImportError :    
+except ImportError:
     hasPAM = 0
-else :    
+else:
     hasPAM = 1
 
 from pykota.tool import Tool, PyKotaToolError, PyKotaCommandLineError, crashed, N_
@@ -146,40 +148,47 @@ examples :
   The TCP port you'll use must be reachable on the client from the
   print server.
 """)
-        
-class TimeoutError(Exception) :        
+
+
+class TimeoutError(Exception):
     """An exception for timeouts."""
-    def __init__(self, message = ""):
+
+    def __init__(self, message=""):
         self.message = message
         Exception.__init__(self, message)
+
     def __repr__(self):
         return self.message
+
     __str__ = __repr__
-    
-class PyKotaNotify(Tool) :        
+
+
+class PyKotaNotify(Tool):
     """A class for pknotify."""
-    def sanitizeMessage(self, msg) :
+
+    def sanitizeMessage(self, msg):
         """Replaces \\n and returns a messagee in xmlrpclib Binary format."""
-        return xmlrpclib.Binary(self.userCharsetToUTF8(msg.replace("\\n", "\n")))
-        
-    def convPAM(self, auth, queries=[], userdata=None) :
+        # return xmlrpclib.Binary(self.userCharsetToUTF8(msg.replace("\\n", "\n")))
+        return client.Binary(self.userCharsetToUTF8(msg.replace("\\n", "\n")).encode())
+
+    def convPAM(self, auth, queries=[], userdata=None):
         """Prepares PAM datas."""
         response = []
-        for (query, qtype) in queries :
-            if qtype == PAM.PAM_PROMPT_ECHO_OFF :
+        for (query, qtype) in queries:
+            if qtype == PAM.PAM_PROMPT_ECHO_OFF:
                 response.append((self.password, 0))
-            elif qtype in (PAM.PAM_PROMPT_ECHO_ON, PAM.PAM_ERROR_MSG, PAM.PAM_TEXT_INFO) :
+            elif qtype in (PAM.PAM_PROMPT_ECHO_ON, PAM.PAM_ERROR_MSG, PAM.PAM_TEXT_INFO):
                 self.printInfo("Unexpected PAM query : %s (%s)" % (query, qtype), "warn")
                 response.append(('', 0))
             else:
                 return None
         return response
 
-    def checkAuth(self, username, password) :    
+    def checkAuth(self, username, password):
         """Checks if we could authenticate an username with a password."""
-        if not hasPAM :    
-            raise PyKotaToolError, _("You MUST install PyPAM for this functionnality to work !")
-        else :    
+        if not hasPAM:
+            raise PyKotaToolError("You MUST install PyPAM for this functionnality to work !")
+        else:
             retcode = False
             self.password = password
             self.regainPriv()
@@ -187,144 +196,146 @@ class PyKotaNotify(Tool) :
             auth.start("passwd")
             auth.set_item(PAM.PAM_USER, username)
             auth.set_item(PAM.PAM_CONV, self.convPAM)
-            try :
+            try:
                 auth.authenticate()
                 auth.acct_mgmt()
-            except PAM.error, resp :
-                self.printInfo(_("Authentication error for user %s : %s") % (username, resp), "warn")
-            except :
-                self.printInfo(_("Internal error : can't authenticate user %s") % username, "error")
-            else :
-                self.logdebug(_("Password correct for user %s") % username)
+            except PAM.error as resp:
+                self.printInfo(f"Authentication error for user {username} : {resp}", "warn")
+            except:
+                self.printInfo(f"Internal error : can't authenticate user {username}", "error")
+            else:
+                self.logdebug(f"Password correct for user {username}")
                 retcode = True
-            self.dropPriv()    
+            self.dropPriv()
             return retcode
-            
-    def alarmHandler(self, signum, frame) :        
+
+    def alarmHandler(self, signum, frame):
         """Alarm handler."""
-        raise TimeoutError, _("The end user at %s:%i didn't answer within %i seconds. The print job will be cancelled.") % (self.destination, self.port, self.timeout)
-        
-    def main(self, arguments, options) :
+        raise TimeoutError(
+            f"The end user at {self.destination}:{self.port:d} didn't answer within {self.timeout:d} seconds. The print job will be cancelled.")
+
+    def main(self, arguments, options):
         """Notifies or asks questions to end users through PyKotIcon."""
-        try :
+        try:
             (self.destination, self.port) = options["destination"].split(":")
             self.port = int(self.port)
-        except ValueError :
+        except ValueError:
             self.destination = options["destination"]
             self.port = 7654
-            
-        try :
+
+        try:
             denyafter = int(options["denyafter"])
-            if denyafter < 1 :
+            if denyafter < 1:
                 raise ValueError
-        except (ValueError, TypeError) :        
+        except (ValueError, TypeError):
             denyafter = 1
-            
-        try :    
+
+        try:
             self.timeout = int(options["timeout"])
-            if self.timeout < 0 :
+            if self.timeout < 0:
                 raise ValueError
-        except (ValueError, TypeError) :
+        except (ValueError, TypeError):
             self.timeout = 0
-            
-        if self.timeout :
+
+        if self.timeout:
             signal.signal(signal.SIGALRM, self.alarmHandler)
             signal.alarm(self.timeout)
-            
-        try :    
-            try :    
-                server = xmlrpclib.ServerProxy("http://%s:%s" % (self.destination, self.port))
-                if options["ask"] :
-                    try :
+
+        try:
+            try:
+                server = client.ServerProxy("http://%s:%s" % (self.destination, self.port))
+                if options["ask"]:
+                    try:
                         denyafter = int(options["denyafter"])
-                        if denyafter < 1 :
+                        if denyafter < 1:
                             raise ValueError
-                    except (ValueError, TypeError) :    
+                    except (ValueError, TypeError):
                         denyafter = 1
                     labels = []
                     varnames = []
                     varvalues = {}
-                    for arg in arguments :
-                        try :
+                    for arg in arguments:
+                        try:
                             (label, varname, varvalue) = arg.split(":", 2)
-                        except ValueError :    
-                            raise PyKotaCommandLineError, "argument '%s' is invalid !" % arg
+                        except ValueError:
+                            raise PyKotaCommandLineError(f"argument '{arg}' is invalid !")
                         labels.append(self.sanitizeMessage(label))
                         varname = varname.lower()
                         varnames.append(varname)
                         varvalues[varname] = self.sanitizeMessage(varvalue)
-                        
-                    passnumber = 1    
+
+                    passnumber = 1
                     authok = None
-                    while (authok != "AUTH=YES") and (passnumber <= denyafter) :
-                        result = server.askDatas(labels, varnames, varvalues)    
-                        if not options["checkauth"] :
+                    while (authok != "AUTH=YES") and (passnumber <= denyafter):
+                        result = server.askDatas(labels, varnames, varvalues)
+                        if not options["checkauth"]:
                             break
-                        if result["isValid"] :
-                            if ("username" in varnames) and ("password" in varnames) :
-                                if self.checkAuth(self.UTF8ToUserCharset(result["username"].data[:]), 
-                                                  self.UTF8ToUserCharset(result["password"].data[:])) :
+                        if result["isValid"]:
+                            if ("username" in varnames) and ("password" in varnames):
+                                if self.checkAuth(self.UTF8ToUserCharset(result["username"].data[:]),
+                                                  self.UTF8ToUserCharset(result["password"].data[:])):
                                     authok = "AUTH=YES"
-                                else :    
+                                else:
                                     authok = "AUTH=NO"
-                            else :        
-                                authok = "AUTH=IMPOSSIBLE"        
-                        passnumber += 1        
-                                    
+                            else:
+                                authok = "AUTH=IMPOSSIBLE"
+                        passnumber += 1
+
                     if options["checkauth"] and options["denyafter"] \
-                       and (passnumber > denyafter) \
-                       and (authok != "AUTH=YES") :
-                        print "DENY"
-                    if result["isValid"] :
-                        for varname in varnames :
+                            and (passnumber > denyafter) \
+                            and (authok != "AUTH=YES"):
+                        print("DENY")
+                    if result["isValid"]:
+                        for varname in varnames:
                             if (varname != "password") \
-                               and ((varname != "username") or (authok in (None, "AUTH=YES"))) :
-                                print "%s=%s" % (varname.upper(), self.UTF8ToUserCharset(result[varname].data[:]))
-                        if authok is not None :        
-                            print authok        
-                elif options["confirm"] :
-                    print server.showDialog(self.sanitizeMessage(arguments[0]), True)
-                elif options["notify"] :
-                    print server.showDialog(self.sanitizeMessage(arguments[0]), False)
-                    
-                if options["quit"] :    
+                                    and ((varname != "username") or (authok in (None, "AUTH=YES"))):
+                                print(f"{varname.upper()}={self.UTF8ToUserCharset(result[varname].data[:])}")
+                        if authok is not None:
+                            print(authok)
+                elif options["confirm"]:
+                    print(server.showDialog(self.sanitizeMessage(arguments[0]), True))
+                elif options["notify"]:
+                    print(server.showDialog(self.sanitizeMessage(arguments[0]), False))
+
+                if options["quit"]:
                     server.quitApplication()
-            except (xmlrpclib.ProtocolError, socket.error, socket.gaierror), msg :
-                print options["noremote"]
-                #try :
+            except (client.ProtocolError, socket.error, socket.gaierror) as msg:
+                print(options["noremote"])
+                # try :
                 #    errnum = msg.args[0]
-                #except (AttributeError, IndexError) :
+                # except (AttributeError, IndexError) :
                 #    pass
-                #else :    
+                # else :
                 #    if errnum == errno.ECONNREFUSED :
                 #        raise PyKotaToolError, "%s : %s" % (str(msg), (_("Are you sure that PyKotIcon is running and accepting incoming connections on %s:%s ?") % (self.destination, self.port)))
-                self.printInfo("%s : %s" % (_("Connection error"), str(msg)), "warn")
-            except TimeoutError, msg :    
+                self.printInfo(f"{'Connection error'} : {str(msg)}", "warn")
+            except TimeoutError as msg:
                 self.printInfo(msg, "warn")
-                print "CANCEL"      # Timeout occured : job is cancelled.
-        finally :    
-            if self.timeout :    
-                signal.alarm(0)    
-        
-if __name__ == "__main__" :
+                print("CANCEL")  # Timeout occured : job is cancelled.
+        finally:
+            if self.timeout:
+                signal.alarm(0)
+
+
+if __name__ == "__main__":
     retcode = 0
-    try :
-        defaults = { \
-                     "timeout" : 0,
-                     "noremote" : "CANCEL",
-                   }
+    try:
+        defaults = {
+            "timeout": 0,
+            "noremote": "CANCEL",
+        }
         short_options = "vhd:acnqCD:t:N:"
-        long_options = ["help", "version", "destination=", "denyafter=", \
-                        "timeout=", "ask", "checkauth", "confirm", "notify", \
-                        "quit", "noremote=" ]
-        
+        long_options = ["help", "version", "destination=", "denyafter=",
+                        "timeout=", "ask", "checkauth", "confirm", "notify",
+                        "quit", "noremote="]
+
         # Initializes the command line tool
         notifier = PyKotaNotify(doc=__doc__)
         notifier.deferredInit()
-        
+
         # parse and checks the command line
         (options, args) = notifier.parseCommandline(sys.argv[1:], short_options, long_options)
-        
+
         # sets long options
         options["help"] = options["h"] or options["help"]
         options["version"] = options["v"] or options["version"]
@@ -337,39 +348,39 @@ if __name__ == "__main__" :
         options["denyafter"] = options["D"] or options["denyafter"]
         options["timeout"] = options["t"] or options["timeout"] or defaults["timeout"]
         options["noremote"] = (options["N"] or options["noremote"] or defaults["noremote"]).upper()
-        
-        if options["help"] :
+
+        if options["help"]:
             notifier.display_usage_and_quit()
-        elif options["version"] :
+        elif options["version"]:
             notifier.display_version_and_quit()
         elif (options["ask"] and (options["confirm"] or options["notify"])) \
-             or (options["confirm"] and (options["ask"] or options["notify"])) \
-             or ((options["checkauth"] or options["denyafter"]) and not options["ask"]) \
-             or (options["notify"] and (options["ask"] or options["confirm"])) :
-            raise PyKotaCommandLineError, _("incompatible options, see help.")
+                or (options["confirm"] and (options["ask"] or options["notify"])) \
+                or ((options["checkauth"] or options["denyafter"]) and not options["ask"]) \
+                or (options["notify"] and (options["ask"] or options["confirm"])):
+            raise PyKotaCommandLineError("incompatible options, see help.")
         elif (not options["destination"]) \
-             or not (options["quit"] or options["ask"] or options["confirm"] or options["notify"]) :
-            raise PyKotaCommandLineError, _("some options are mandatory, see help.")
-        elif options["noremote"] not in ("CANCEL", "CONTINUE") :
-            raise PyKotaCommandLineError, _("incorrect value for the --noremote command line switch, see help.")
-        elif (not args) and (not options["quit"]) :
-            raise PyKotaCommandLineError, _("some options require arguments, see help.")
-        else :
+                or not (options["quit"] or options["ask"] or options["confirm"] or options["notify"]):
+            raise PyKotaCommandLineError("some options are mandatory, see help.")
+        elif options["noremote"] not in ("CANCEL", "CONTINUE"):
+            raise PyKotaCommandLineError("incorrect value for the --noremote command line switch, see help.")
+        elif (not args) and (not options["quit"]):
+            raise PyKotaCommandLineError("some options require arguments, see help.")
+        else:
             retcode = notifier.main(args, options)
-    except KeyboardInterrupt :        
+    except KeyboardInterrupt:
         sys.stderr.write("\nInterrupted with Ctrl+C !\n")
         retcode = -3
-    except PyKotaCommandLineError, msg :    
-        sys.stderr.write("%s : %s\n" % (sys.argv[0], msg))
-        print "CANCEL"  # Forces the cancellation of the print job if a command line switch is incorrect
+    except PyKotaCommandLineError as msg:
+        sys.stderr.write(f"{sys.argv[0]} : {msg}\n")
+        print("CANCEL")  # Forces the cancellation of the print job if a command line switch is incorrect
         retcode = -2
-    except SystemExit :        
+    except SystemExit:
         pass
-    except :
-        try :
-            notifier.crashed("%s failed" % sys.argv[0])
-        except :    
-            crashed("%s failed" % sys.argv[0])
+    except:
+        try:
+            notifier.crashed(f"{sys.argv[0]} failed")
+        except:
+            crashed(f"{sys.argv[0]} failed")
         retcode = -1
-        
-    sys.exit(retcode)    
+
+    sys.exit(retcode)

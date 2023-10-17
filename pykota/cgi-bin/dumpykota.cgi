@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 # -*- coding: ISO-8859-15 -*-
 
 # PyKota Print Quota Reports generator
@@ -93,7 +93,7 @@ header = """Content-type: text/html;charset=%s
         <p>
           %s
         </p>"""
-    
+
 footer = """
         <table>
           <tr>
@@ -116,140 +116,150 @@ footer = """
       </font>
     </p>
   </body>
-</html>"""  
+</html>"""
 
-class PyKotaDumperGUI(DumPyKota) :
+
+class PyKotaDumperGUI(DumPyKota):
     """PyKota Dumper GUI"""
-    def guiDisplay(self) :
+
+    def guiDisplay(self):
         """Displays the dumper interface."""
         global header, footer
-        print header % (self.charset, _("PyKota Data Dumper"), \
-                        self.language, self.charset, \
-                        self.config.getLogoLink(), \
-                        self.config.getLogoURL(), version.__version__, \
-                        self.config.getLogoLink(), \
-                        version.__version__, _("PyKota Data Dumper"), \
-                        _("Dump"), _("Please click on the above button"))
-        print self.htmlListDataTypes(self.options.get("data", "")) 
-        print "<br />"
-        print self.htmlListFormats(self.options.get("format", ""))
-        print "<br />"
-        print self.htmlFilterInput(" ".join(self.arguments))
-        print "<br />"
-        print self.htmlOrderbyInput(self.options.get("orderby", ""))
-        print "<br />"
-        print self.htmlSumCheckbox(self.options.get("sum", ""))
-        print footer % (_("Dump"), version.__doc__, version.__years__, version.__author__, version.__gplblurb__)
-        
-    def htmlListDataTypes(self, selected="") :    
+        print(header % (self.charset, "PyKota Data Dumper",
+                        self.language, self.charset,
+                        self.config.get_logo_link(),
+                        self.config.get_logo_url(), version.__version__,
+                        self.config.get_logo_link(),
+                        version.__version__, "PyKota Data Dumper",
+                        "Dump", "Please click on the above button"))
+        print(self.htmlListDataTypes(self.options.get("data", "")))
+        print("<br />")
+        print(self.htmlListFormats(self.options.get("format", "")))
+        print("<br />")
+        print(self.htmlFilterInput(" ".join(self.arguments)))
+        print("<br />")
+        print(self.htmlOrderbyInput(self.options.get("orderby", "")))
+        print("<br />")
+        print(self.htmlSumCheckbox(self.options.get("sum", "")))
+        print(footer % ("Dump", version.__doc__, version.__years__, version.__author__, version.__gplblurb__))
+
+    def htmlListDataTypes(self, selected=""):
         """Displays the datatype selection list."""
-        message = '<table><tr><td valign="top">%s :</td><td valign="top"><select name="datatype">' % _("Data Type")
-        for dt in self.validdatatypes.items() :
-            if dt[0] == selected :
-                message += '<option value="%s" selected="selected">%s (%s)</option>' % (dt[0], dt[0], dt[1])
-            else :
-                message += '<option value="%s">%s (%s)</option>' % (dt[0], dt[0], dt[1])
+        message = f'<table><tr><td valign="top">{"Data Type"} :</td><td valign="top"><select name="datatype">'
+        for dt in self.validdatatypes.items():
+            if dt[0] == selected:
+                message += f'<option value="{dt[0]}" selected="selected">{dt[0]} ({dt[1]})</option>'
+            else:
+                message += f'<option value="{dt[0]}">{dt[0]} ({dt[1]})</option>'
         message += '</select></td></tr></table>'
         return message
-        
-    def htmlListFormats(self, selected="") :    
+
+    def htmlListFormats(self, selected=""):
         """Displays the formats selection list."""
-        message = '<table><tr><td valign="top">%s :</td><td valign="top"><select name="format">' % _("Output Format")
-        for fmt in self.validformats.items() :
-            if fmt[0] == selected :
-                message += '<option value="%s" selected="selected">%s (%s)</option>' % (fmt[0], fmt[0], fmt[1])
-            else :
-                message += '<option value="%s">%s (%s)</option>' % (fmt[0], fmt[0], fmt[1])
+        message = f'<table><tr><td valign="top">{"Output Format"} :</td><td valign="top"><select name="format">'
+        for fmt in self.validformats.items():
+            if fmt[0] == selected:
+                message += f'<option value="{fmt[0]}" selected="selected">{fmt[0]} ({fmt[1]})</option>'
+            else:
+                message += f'<option value="{fmt[0]}">{fmt[0]} ({fmt[1]})</option>'
         message += '</select></td></tr></table>'
         return message
-        
-    def htmlFilterInput(self, value="") :    
+
+    def htmlFilterInput(self, value=""):
         """Input the optional dump filter."""
-        return _("Filter") + (' : <input type="text" name="filter" size="40" value="%s" /> <em>e.g. <strong>username=jerome printername=HP2100 start=today-30</strong></em>' % (value or ""))
-        
-    def htmlOrderbyInput(self, value="") :    
+        return "Filter" + (
+            f' : <input type="text" name="filter" size="40" value="{value or ""}" /> <em>e.g. <strong>username=jerome printername=HP2100 start=today-30</strong></em>')
+
+    def htmlOrderbyInput(self, value=""):
         """Input the optional ordering."""
-        return _("Ordering") + (' : <input type="text" name="orderby" size="40" value="%s" /> <em>e.g. <strong>+username,-printername</strong></em>' % (value or ""))
-        
-    def htmlSumCheckbox(self, checked="") :    
+        return "Ordering" + (
+            f' : <input type="text" name="orderby" size="40" value="{value or ""}" /> <em>e.g. <strong>+username,-printername</strong></em>')
+
+    def htmlSumCheckbox(self, checked=""):
         """Input the optional Sum option."""
-        return _("Summarize") + (' : <input type="checkbox" name="sum" %s /> <em>%s</em>' % ((checked and 'checked="checked"'), _("only for payments or history")))
-        
-    def guiAction(self) :
+        return "Summarize" + (
+            ' : <input type="checkbox" name="sum" {} /> <em>{}</em>'.format((checked and 'checked="checked"'),
+                                                                            "only for payments or history"))
+
+    def guiAction(self):
         """Main function"""
-        try :
+        try:
             wantreport = self.form.has_key("report")
-        except TypeError :    
-            pass # WebDAV request probably, seen when trying to open a csv file in OOo
-        else :    
-            if wantreport :
-                try :
-                    if self.form.has_key("datatype") :
+        except TypeError:
+            pass  # WebDAV request probably, seen when trying to open a csv file in OOo
+        else:
+            if wantreport:
+                try:
+                    if self.form.has_key("datatype"):
                         self.options["data"] = self.form["datatype"].value
-                    if self.form.has_key("format") :
+                    if self.form.has_key("format"):
                         self.options["format"] = self.form["format"].value
-                    if self.form.has_key("filter") :    
+                    if self.form.has_key("filter"):
                         self.arguments = self.form["filter"].value.split()
-                    if self.form.has_key("sum") :    
+                    if self.form.has_key("sum"):
                         self.options["sum"] = self.form["sum"].value
-                    if self.form.has_key("orderby") :    
+                    if self.form.has_key("orderby"):
                         self.options["orderby"] = self.form["orderby"].value
                     # when no authentication is done, or when the remote username    
                     # is 'root' (even if not run as root of course), then unrestricted
                     # dump is allowed.
-                    remuser = os.environ.get("REMOTE_USER", "root")    
+                    remuser = os.environ.get("REMOTE_USER", "root")
                     # special hack to accomodate mod_auth_ldap Apache module
-                    try :
+                    try:
                         remuser = remuser.split("=")[1].split(",")[0]
-                    except IndexError :    
+                    except IndexError:
                         pass
-                    if remuser != "root" :
+                    if remuser != "root":
                         # non-'root' users when the script is password protected
                         # can not dump any data as they like, we restrict them
                         # to their own datas.
-                        if self.options["data"] not in ["printers", "pmembers", "groups", "gpquotas"] :
+                        if self.options["data"] not in ["printers", "pmembers", "groups", "gpquotas"]:
                             self.arguments.append("username=%s" % remuser)
-                        
-                    fname = "error"    
+
+                    fname = "error"
                     ctype = "text/plain"
-                    if self.options["format"] in ("csv", "ssv") :
-                        #ctype = "application/vnd.sun.xml.calc"     # OpenOffice.org
+                    if self.options["format"] in ("csv", "ssv"):
+                        # ctype = "application/vnd.sun.xml.calc"     # OpenOffice.org
                         ctype = "text/comma-separated-values"
                         fname = "dump.csv"
-                    elif self.options["format"] == "tsv" :
-                        #ctype = "application/vnd.sun.xml.calc"     # OpenOffice.org
+                    elif self.options["format"] == "tsv":
+                        # ctype = "application/vnd.sun.xml.calc"     # OpenOffice.org
                         ctype = "text/tab-separated-values"
                         fname = "dump.tsv"
-                    elif self.options["format"] == "xml" :
+                    elif self.options["format"] == "xml":
                         ctype = "text/xml"
                         fname = "dump.xml"
-                    elif self.options["format"] == "cups" :
+                    elif self.options["format"] == "cups":
                         ctype = "text/plain"
                         fname = "page_log"
-                    print "Content-type: %s" % ctype    
-                    print "Content-disposition: attachment; filename=%s" % fname 
-                    print
+                    print(f"Content-type: {ctype}")
+                    print(f"Content-disposition: attachment; filename={fname}")
+                    print()
                     self.main(self.arguments, self.options, restricted=0)
-                except :
-                    print 'Content-type: text/html\n\n<html><head><title>CGI Error</title></head><body><p><font color="red">%s</font></p></body></html>' % self.crashed("CGI Error").replace("\n", "<br />")
-            else :        
+                except:
+                    print('Content-type: text/html\n\n<html><head><title>CGI Error</title></head><body><p><font '
+                          'color="red">{}</font></p></body></html>'.format(
+                            self.crashed(
+                                "CGI Error").replace("\n", "<br />")))
+            else:
                 self.guiDisplay()
-            
-if __name__ == "__main__" :
+
+
+if __name__ == "__main__":
     admin = PyKotaDumperGUI(lang=getLanguagePreference(), charset=getCharsetPreference())
     admin.deferredInit()
     admin.form = cgi.FieldStorage()
-    admin.options = { "output" : "-",
-                "data" : "history",
-                "format" : "cups",
-                "sum" : None,
-                "orderby" : None,
-              }
+    admin.options = {"output": "-",
+                     "data": "history",
+                     "format": "cups",
+                     "sum": None,
+                     "orderby": None,
+                     }
     admin.arguments = []
     admin.guiAction()
-    try :
+    try:
         admin.storage.close()
-    except (TypeError, NameError, AttributeError) :    
+    except (TypeError, NameError, AttributeError):
         pass
-        
+
     sys.exit(0)
