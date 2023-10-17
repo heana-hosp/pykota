@@ -1,0 +1,2 @@
+include README COPYING NEWS MANIFEST.in clean.sh bin/pksubscribe
+recursive-include notifiers *

@@ -1,0 +1,52 @@
+# $Id: CREDITS 331 2007-11-23 09:47:40Z jerome $
+
+pkpgcounter : a generic Page Description Language parser
+
+(c) 2003, 2004, 2005, 2006, 2007 Jerome Alet <alet@librelogiciel.com>
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+============================================================
+
+The following people helped the pkpgcounter project :
+  
+  
+  - Eduardo Gielamo Oliveira & Rodolfo Broco Manin : initial PCL parser.
+  
+  - Valcir C. Vargas : helped on PCL3GUI support.
+  
+  - Daniel Franklin : pkpgcounter's algorithm for the computation 
+    of ink coverage comes from Daniel's PrintBill project.
+    
+  - Aurélien Croc : reverse engineered Samsung QPDL and published  
+                    a language specification.
+
+  - Franck (?) : sent a path to improve the PostScript parser when
+                 the PS code generated several copies.
+                 
+  - Yves Lavoie : reported a bug with Python 2.5                 
+  
+  - Kumar Appaiah : put pkpgcounter in Debian.
+
+==============================================================
+
+  IF YOUR NAME DOESN'T APPEAR IN THE LISTS ABOVE, AND YOU
+  THINK YOU DESERVE TO BE LISTED, JUST SEND ME AN EMAIL
+  ASKING FOR BEING INCLUDED.
+  
+  I APOLOGIZE IN ADVANCE IF I'VE FORGOTTEN TO ADD YOUR NAME.
+  
+  ALSO, SOME PEOPLE MAY HAVE REFUSED TO BE LISTED HERE, THIS 
+  IS YOUR RIGHT TO DO SO TOO, JUST TELL ME.
+  
+==============================================================

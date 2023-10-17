@@ -1,0 +1,149 @@
+#! /usr/bin/env python
+# -*- coding: ISO-8859-15 -*-
+#
+# pkipplib : IPP and CUPS support for Python
+#
+# (c) 2003, 2004, 2005, 2006 Jerome Alet <alet@librelogiciel.com>
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+#
+# $Id: pksubscribe 31 2006-06-24 13:31:05Z jerome $
+
+"""pksubscribe is a command line tool which can be used to create
+or delete IPP subscriptions."""
+
+import sys
+import locale
+import gettext
+import optparse
+
+from pkipplib import pkipplib        
+    
+if __name__ == "__main__" :    
+    try :
+        locale.setlocale(locale.LC_ALL, "")
+    except (locale.Error, IOError) :
+        sys.stderr.write("Problem while setting locale.\n")
+    try :
+        gettext.install("pksubscribe")
+    except :
+        gettext.NullTranslations().install()
+    parser = optparse.OptionParser(usage="pksubscribe [options] [subscriptions ids]")
+    parser.add_option("-v", "--version", 
+                            action="store_true", 
+                            dest="version",
+                            help=_("show pksubscribe's version number and exit."))
+    parser.add_option("-c", "--cups", 
+                            default="http://localhost:631", 
+                            dest="cups",
+                            help=_("the CUPS server to connect to. Defaults to http://localhost:631"))
+    parser.add_option("-d", "--debug", 
+                            action="store_true", 
+                            dest="debug",
+                            help=_("activate debug mode."))
+    parser.add_option("-X", "--delete", 
+                            action="store_true", 
+                            dest="delete",
+                            help=_("deletes subscriptions."))
+    parser.add_option("-p", "--printer", 
+                            dest="printer",
+                            help=_("the printer's name for a printer subscription."))
+    parser.add_option("-j", "--job", 
+                            type="int", 
+                            dest="job",
+                            help=_("the job's id for a job subscripition."))
+    parser.add_option("-r", "--recipient",                        
+                            dest="recipient",
+                            help=_("the recipient's uri."))
+    parser.add_option("-C", "--charset",                        
+                            dest="charset",
+                            help=_("the charset to use in notifications sent for this subscription."))
+    parser.add_option("-L", "--language",                        
+                            dest="language",
+                            help=_("the language to use in notifications sent for this subscription."))
+    parser.add_option("-u", "--userdata",                        
+                            dest="userdata",
+                            help=_("the user's data to use in notifications for this subscription."))
+    parser.add_option("-U", "--username",                        
+                            dest="username",
+                            help=_("the user's name to use when connecting to the CUPS server."))
+    parser.add_option("-W", "--password",                        
+                            dest="password",
+                            help=_("the user's password to use when connecting to the CUPS server."))
+    parser.add_option("-E", "--events",                        
+                            dest="events",
+                            help=_("a comma separated list of events to subscribe to."))
+    parser.add_option("-P", "--pullmethod",                        
+                            dest="pullmethod",
+                            help=_("the optional pull method's name."))
+    parser.add_option("-D", "--duration",
+                            type="int",
+                            dest="duration",
+                            help=_("the duration of the subscription."))
+    parser.add_option("-I", "--interval",                        
+                            type="int",
+                            dest="interval",
+                            help=_("the time interval of the subscription."))
+                            
+    (options, arguments) = parser.parse_args()
+    if options.version :
+        print "pksubscribe v%(__version__)s" % globals()
+    else :
+        if not options.events and not options.delete :
+            sys.stderr.write(_("You MUST pass a list of events to subscribe to.\n"))
+        elif not options.recipient and not options.delete :    
+            sys.stderr.write(_("You MUST pass a recipient for the subscription.\n"))
+        elif options.delete and not arguments :    
+            sys.stderr.write(_("You MUST pass a subscriptions ids at the end of your command line.\n"))
+        else :    
+            cups = pkipplib.CUPS(options.cups,
+                                 options.username,
+                                 options.password,
+                                 debug=options.debug)
+            baseurl = options.cups.replace("http://", "ipp://")
+            if baseurl.endswith(":631") : 
+                baseurl = baseurl[:-4]
+            if options.printer :
+                url = "%s/printers/%s" % (baseurl, options.printer)
+            elif options.job :     
+                url = "%s/jobs/%i" % (baseurl, options.job)
+            else :    
+                url = baseurl
+            if not options.delete :    
+                answer = cups.createSubscription(url,
+                                                 [e.strip() for e in options.events.split(",")],
+                                                 userdata=options.userdata,
+                                                 recipient=options.recipient,
+                                                 pullmethod=options.pullmethod,
+                                                 charset=options.charset,
+                                                 naturallanguage=options.language,
+                                                 leaseduration=options.duration,
+                                                 timeinterval=options.interval,
+                                                 jobid=options.job)
+                try :                                 
+                    subscriptionid = answer.subscription["notify-subscription-id"][0][1]
+                except KeyError :
+                    sys.stderr.write("%s\n" % answer.operation["status-message"][0][1])
+                else :    
+                    print "Subscription %i registered." % subscriptionid
+            else :        
+                for subid in [int(arg) for arg in arguments] :
+                    answer = cups.cancelSubscription(url, subid, options.job)
+                    try :
+                        error = answer.operation["status-message"][0][1]
+                    except KeyError :    
+                        print "Subscription %i cancelled." % subid
+                    else :
+                        sys.stderr.write("%s\n" % error)
+

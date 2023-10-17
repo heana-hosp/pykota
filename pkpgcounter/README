@@ -1,0 +1,193 @@
+# $Id: README 375 2007-12-09 15:00:13Z jerome $
+
+pkpgcounter : a generic Page Description Language parser
+
+(c) 2003, 2004, 2005, 2006, 2007 Jerome Alet <alet@librelogiciel.com>
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+=============================================================================
+
+pkpgcounter is a generic Page Description Language parser which can either
+compute the number of pages in a document, or compute the percent of
+ink coverage needed to print each page, in different colorspaces.
+
+pkpgcounter currently recognizes the following document formats :
+
+        - PostScript (both DSC compliant and binary)
+        
+        - PDF
+        
+        - PCL3/4/5
+        
+        - PCLXL (aka PCL6)
+        
+        - DVI
+        
+        - OpenDocument (ISO/IEC DIS 26300)
+        
+        - Microsoft Word (c) (tm) (r) (etc...)
+        
+        - Plain text
+        
+        - TIFF
+        
+        - Several other image formats
+        
+        - ESC/P2
+        
+        - Zenographics ZjStream
+        
+        - Samsung QPDL (aka SPL2)
+        
+        - Samsung SPL1
+        
+        - ESC/PageS03
+        
+        - Brother HBP
+        
+        - Hewlett-Packard Lightweight Imaging Device Interface Language
+        
+        - Structured Fax
+        
+        - Canon BJ/BJC
+        
+        - ASCII PNM (Netpbm)
+        
+The ten latter ones, as well as some TIFF documents, are currently 
+only supported in page counting mode. 
+
+By default, when launched pkpgcounter prints on its standard output 
+a single integer representing the total number of pages in all the 
+files which filenames you've passed on the command line. 
+
+With no argument, or with a single dash in non-option arguments,
+pkpgcounter reads datas to parse from its standard input in addition
+to other non-options arguments which are treated as filenames
+representing the files to parse.
+
+See pkpgcounter --help for details and examples.
+
+=============================================================================
+
+Installation :
+--------------
+
+  0 - Download pkpgcounter from :
+  
+        http://www.pykota.com/software/pkpgcounter/download
+        
+      and extract it :  
+      
+        $ tar -zxf pkpgcounter-x.yy.tar.gz
+        
+        where x.yy is pkpgcounter' version number.
+        
+  1 - Run the installation script :
+      
+        $ python setup.py install
+        
+      This will usually install the pkpgcounter into /usr/bin and  
+      the library into /usr/lib/python2.?/site-packages/pkpgpdls/
+        
+  2 - Use pkpgcounter :
+  
+      $ pkpgcounter file1.ps file2.pclxl ... <fileN.escp2
+      
+      pkpgcounter will display the total size in pages of all the files
+      passed on the command line.
+      
+      $ pkpgcounter --colorspace bw --resolution 150 file1.ps
+  
+      Will output the percent of black ink needed on each page of
+      the file1.ps file rendered at 150 dpi.
+      
+  3 - That's all !    
+  
+DEPENDENCIES :
+
+  Most of the time, pkpgcounter only depends on the presence of :
+  
+  - The Python Imaging Library (python-imaging)
+  
+  But, depending on the file formats you plan to work with, and on the
+  accounting mode you want to use (pages vs ink), you may need to install
+  some or all of the additional software listed below. Usually, if one is
+  needed then pkpgcounter will complain. So your best bet is probably 
+  to NOT INSTALL anything until pkpgcounter asks you to do so on its
+  standard error stream. Here's the list of software which may be needed
+  for some operations with pkpgcounter :
+
+  - GhostScript (gs)
+  
+  - The X Virtual Frame Buffer (xvfb)
+  
+  - The X authority file utility xauth (xbase-clients)
+  
+  - The dvips converter from TeX DVI to PostScript (tetex-bin)
+  
+  - The ImageMagick image manipulation toolkit (imagemagick)
+  
+  - The AbiWord word processor (abiword)
+
+  - The GhostPCL/GhostPDL's pcl6 converter from PCL to PostScript
+        
+=============================================================================
+
+Troubleshooting : 
+-----------------
+
+  If pkpgcounter gives incorrect results to you, please make an incorrectly
+  parsed data file available to us on some website, and tell us which 
+  driver was used, how many pages are in the file, and any additional 
+  information you think is relevant.
+  
+  If pkpgcounter complain about your system lacking the Python Psyco module,
+  please consider installing it to speedup file parsing. However, don't forget
+  that Psyco currently only runs on the 32 bits x86 platform, so no need to 
+  install it if you've got another system type.
+  
+=============================================================================
+
+Before pkpgcounter v1.86, the PCL3/4/5 parser was a Python backport of an early
+release of the PCLCount software by Eduardo Gielamo Oliveira and Rodolfo Broco
+Manin, available from :
+
+    http://www.fea.unicamp.br/pclcount/
+    
+Their software is distributed under either the terms of a BSD-like license,    
+or the terms of the GNU General Public License of the Free Software Foundation.
+
+Beginning with pkpgcounter v1.86, the PCL3/4/5 parser was rewritten from
+scratch, and is now much more readable, maintainable, and of course accurate.
+
+The old parser was still available until pkpgcounter v2.18 was published, but
+was definitely removed after that, just before pkpgcounter v3.00 was published.
+    
+pkpgcounter's PCLXL (aka PCL6) parser doesn't originate from PCLCount, but 
+was written from scratch, just like all the other parsers included in
+pkpgcounter.
+
+=============================================================================
+
+pkpgcounter's ink coverage algorithm for the CMYK colorspace is a 
+direct Python port from the PrintBill project by Daniel Franklin. 
+PrintBill is distributed under the terms of the GNU General Public 
+License of the Free Software Foundation, version 2 or higher. The 
+algorithms used for the other colorspaces are a complete rewrite of 
+PrintBill's algorithms using both Python and the Python Imaging 
+Library's facilities. 
+
+=============================================================================
+
+Please e-mail bugs to : alet@librelogiciel.com (Jerome Alet)

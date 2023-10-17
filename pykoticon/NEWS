@@ -1,0 +1,47 @@
+# $Id: NEWS 118 2006-06-08 21:26:27Z jerome $
+
+PyKotIcon - Client side helper for PyKota and other applications
+
+(c) 2003, 2004, 2005, 2006 Jerome Alet <alet@librelogiciel.com>
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+
+============================================================
+
+PyKotIcon NEWS :
+
+  - 1.02 (2006-06-07) :
+    
+    - Added the --cache command line option to specify the time in
+      seconds during which input forms' content will be cached.
+      This allows people to avoid retyping their username and
+      password for each print job, for example.
+      
+    - Doesn't display the Quit menu anymore if not allowed.
+    
+    - Doesn't display the ugly traceback anymore when the client  
+      disconnects before the server has sent the answer back
+      (pknotify --timeout).
+      
+  - 1.01 (2006-05-01) :
+      
+    - Now accepts command line options.    
+    
+    - Less ugly when run under *nix.
+    
+    - Debug mode off by default.
+    
+  - 1.00 (2006-03-23) : 
+  
+    - First release

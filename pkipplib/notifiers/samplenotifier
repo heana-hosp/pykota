@@ -1,0 +1,41 @@
+#! /usr/bin/env python
+# -*- coding: ISO-8859-15 -*-
+#
+
+"""This command can be placed in /usr/lib/cups/notifier and
+used as the notifications' recipient when creating IPP subscriptions.
+
+It will automatically ensures that each time a printer is added or
+removed from CUPS it is also added or removed from PyKota's database.
+
+IMPORTANT : because of a bug in CUPS 1.2.1, this command only works
+the first time a notification is sent."""
+
+import sys
+import os
+import fcntl
+
+from pkipplib import pkipplib
+
+if __name__ == "__main__" :
+    #
+    # First thing we do is put stdin in non-blocking mode.
+    fd = sys.stdin.fileno()
+    fcntl.fcntl(sys.stdin.fileno(), fcntl.F_SETFL, 
+                    fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK)
+
+    # then we read the notification CUPS sent us to our stdin
+    notification = pkipplib.IPPRequest(sys.stdin.read())
+    
+    # now we parse it
+    notification.parse()
+    
+    # then we act one way or another, depending on the event received.
+    event = notification.event_notification["notify-subscribed-event"][0][1]
+    if event in ("printer-added", "printer-deleted") :
+        printername = notification.event_notification["printer-name"][0][1]
+        if event.endswith("-added") :
+            action = "add"
+        else :    
+            action = "delete"
+        os.system('/usr/bin/pkprinters --%s "%s"' % (action, printername))

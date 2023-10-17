@@ -1,0 +1,181 @@
+# $Id: README 112 2006-06-08 17:53:18Z jerome $
+
+PyKotIcon - Client side helper for PyKota and other applications
+
+(c) 2003, 2004, 2005, 2006 Jerome Alet <alet@librelogiciel.com>
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+
+====================================================================
+
+PyKotIcon is a cross-platform client-side helper for PyKota.
+
+It is meant to be launched whenever the user logs in, and stay in 
+the taskbar (depending on the client operating system) until the 
+user closes his session. 
+  
+Installation :
+
+  * GNU/Linux and similar :
+  
+    $ cd pykoticon
+    $ python setup.py install
+    
+    Then modify your .xsession file, or the appropriate file depending
+    on your desktop environment, to ensure that the pykoticon command
+    is launched in the background each time your X Window session
+    starts.
+    
+    You MUST pass the list of hostnames or IP addresses from which
+    PyKotIcon should accept incoming connexions on pykoticon's
+    command line. Connexions from localhost are always accepted.
+    If you use PyKotIcon with PyKota, you'll want to pass the
+    hostnames or IP addresses of ALL print servers on pykoticon's
+    command line.
+    
+    NB : `pykoticon --help` will give you hints about the expected
+    command line parameters.
+    
+  * MS Windows :  
+  
+    Download pykoticon-x.yy.zip from 
+    
+        http://www.pykota.com/software/pykoticon/download/tarballs/
+        
+    Unzip it into a directory of its own. I usually unzip it into    
+    /var/lib/samba/netlogon/pykoticon/
+    
+    Modify the PYKOTICON.VBS file to include the list of authorized
+    print servers and change other parameters as needed, as explained
+    in the GNU/Linux section above.
+    
+    Ensure that PYKOTICON.VBS is executed each time an user logs
+    in. The easiest way to do this is in STARTUP.CMD :
+    
+      --- CUT ---
+      SET PATH=%PATH%;\\MYSERVER\NETLOGON\PYKOTICON\
+      \\MYSERVER\NETLOGON\PYKOTICON\PYKOTICON.VBS 
+      --- CUT ---
+      
+    NB : if you launch PYKOTICON.EXE directly instead of from
+    PYKOTICON.VBS, a small but disturbing window may appear on 
+    the screen.
+
+
+====================================================================
+
+
+Usage :
+
+  PyKotIcon is often used as a client side companion of the PyKota
+  print accounting solution, with PyKota's pknotify command line tool
+  acting as a PyKotIcon client. But in reality PyKotIcon is completely
+  independant of PyKota, and can be used from any application
+  which can do remote procedure calls over XML-RPC.
+  
+  PyKotIcon exposes 4 of its methods over XML-RPC, here they are :
+  
+    - nop :
+    
+      This methods does exactly nothing :)
+      
+      - Input : No argument.
+      
+      - Output : returns the True boolean value.
+      
+    - quitApplication :  
+    
+      This method causes the PyKotIcon application to exit.
+      
+      - Input : No argument.
+      
+      - Output : returns the True boolean value.
+          
+    - showDialog :  
+   
+      This methods displays an informational message, and returns
+      the choice the user made, if any.
+       
+      - Input : 
+        
+        - message : a Binary XML-RPC object representing an UTF-8 encoded 
+          character string which will be displayed to the end user. 
+          This string can contain literal "\n" sequences which will 
+          be automatically expanded into line breaks by PyKotIcon.
+          
+        - confirmation : a boolean value indicating if the user will  
+          be given the choice to valid or cancel (True), or only
+          to valid (False) the dialog box.
+            
+      - Output :      
+      
+        - the literal string "OK" if the user clicked on the OK button,
+          else the literal string "CANCEL". The latter is only possible
+          if the method was called with its second parameter set to
+          True.
+        
+    - askDatas :      
+    
+      This method can generate an input form and return what the user
+      entered in the different fields.
+      
+      - Input :
+      
+        - An array of labels, one label per input field in the 
+          form to be created. Each label in the list is passed as
+          a Binary XML-RPC object representing an UTF-8 encoded
+          character string.
+          
+        - An array of variables names, one name per input field in
+          the form to be created. Each name in the list is passed
+          as an ASCII encoded character string.
+          
+        - An array of initial values, one possibly empty value per  
+          input field in the form to be created. Each initial value
+          in the list is passed as a Binary XML-RPC object representing
+          an UTF-8 encoded character string.
+      
+      - Output :
+      
+        - An associative array (e.g. Python mapping) containing the
+          variables names as keys and the variables' contents as
+          values in the following format :
+          
+          - Each key is an ASCII encoded character string representing
+            the name of a variable to ask which was passed from the 
+            caller.
+            
+          - Each value is a Binary XML-RPC object representing an UTF-8  
+            encoded character string, itself being the result of user
+            input in the form's field for this particular variable.
+
+          - A special key named 'isValid' gives access to a boolean
+            value in the associative array. If the value is True,
+            then the input fields' contents are valid. If the value
+            is False, then was the user typed in the input fields
+            has to be discarded because, for example, the user
+            closed the form without validing his entries.
+            In this case, all the other values are empty strings
+            anyway.
+            
+            
+IMPORTANT : PyKotIcon doesn't currently support encrypted connexions,            
+so if you're afraid of sensitive information flying in the clear
+over the nework, you should probably install a transparent secure 
+tunneling software like stunnel on both sides of each connection.
+
+====================================================================
+    
+Please e-mail bugs to the PyKota mailing list at : pykota@librelogiciel.com
+or to the main author at : alet@librelogiciel.com (Jerome Alet)

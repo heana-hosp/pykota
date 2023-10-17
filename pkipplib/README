@@ -1,0 +1,170 @@
+pkipplib : IPP and CUPS support for Python
+
+$Id: README 34 2006-06-24 13:56:24Z jerome $
+
+(c) 2003, 2004, 2005, 2006 Jerome Alet <alet@librelogiciel.com>
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+=======================================================================
+
+This software is a Python library which can prepare IPP requests with
+the help of a somewhat high level API. These requests can then be sent
+to an IPP printer or print server (e.g. CUPS).
+
+This library can also parse IPP answers received, and create high
+level Python objects from them.
+
+Both of these actions can be done through an IPPRequest class
+and its instance methods.
+
+Finally, a CUPS class can be leveraged to easily deal with CUPS 
+print servers.
+
+All of this library being written in the Python language, there's
+no need to link the code with the CUPS' API, which makes it
+independant of the CUPS version being installed.
+
+=======================================================================
+
+Installation :
+--------------
+
+        1 - Grab the latest version of this library from :
+        
+            http://www.pykota.com/software/pkipplib/
+            
+        2 - Extract the tarball :    
+        
+            $ tar -zxf pkipplib-x.yy.tar.gz
+            
+        3 - Install the Python module :    
+        
+            $ cd pkipplib-x.yy
+            $ python setup.py install
+
+NB : for the installation script to work, you need to install
+the python-dev package on your system first.
+
+=======================================================================
+
+Examples :
+----------
+
+--- CUT ---
+# Parsing.py    EXAMPLE
+from pkipplib import pkipplib
+
+# Read IPP datas from a CUPS job control file
+myfile = open("/var/spool/cups/c00155")
+ippdatas = myfile.read()
+myfile.close()
+
+# Parse these datas
+request = pkipplib.IPPRequest(ippdatas)
+request.parse()
+
+# Print the whole result as a string
+print request
+
+# Access one of the job's attributes directly 
+print request.job["job-name"]
+--- CUT ---
+
+
+--- CUT ---
+# Building.py   EXAMPLE
+from pkipplib import pkipplib
+
+# Create a CUPS_GET_DEFAULT request
+request = pkipplib.IPPRequest(operation_id=pkipplib.CUPS_GET_DEFAULT)
+request.operation["attributes-charset"] = ("charset", "utf-8")
+request.operation["attributes-natural-language"] = ("naturalLanguage", "en-us")
+
+# Get the request as binary datas
+ippdatas = request.dump()
+
+# Parse these datas back
+newrequest = pkipplib.IPPRequest(ippdatas)
+newrequest.parse()
+
+# Of course, the result of parsing matches what we created before.
+print newrequest.operation["attributes-natural-language"]
+--- CUT ---
+
+
+--- CUT ---
+# CUPS' API
+from pkipplib import pkipplib
+
+# Create a CUPS client instance
+# cups = pkipplib.CUPS(url="http://server:631", username="john", password="blah!")
+cups = pkipplib.CUPS()
+
+# High level API : retrieve info about job 3 :
+answer = cups.getJobAttributes(3)
+print answer.job["document-format"]
+# That's all folks !
+
+# Lower level API :
+request = cups.newRequest(pkipplib.IPP_GET_PRINTER_ATTRIBUTES)
+request.operation["printer-uri"] = ("uri", 
+                                    cups.identifierToURI("printers", "HP2100"))
+for attribute in ("printer-uri-supported",                                     
+                  "printer-type",
+                  "member-uris") :
+    # IMPORTANT : here, despite the unusual syntax, we append to              
+    # the list of requested attributes :
+    request.operation["requested-attributes"] = ("nameWithoutLanguage", attribute)
+    
+# Sends this request to the CUPS server    
+answer = cups.doRequest(request)
+
+# Print the answer as a string of text
+print answer
+--- CUT ---
+
+=======================================================================
+
+Command line tools :
+
+  pkipplib currently includes the following command line tools :
+  
+    * pksubscribe : can create or delete IPP subscriptions.
+    
+          See pksubscribe --help for details.
+        
+          examples :
+          
+            $ pksubscribe --cups http://localhost:631 \
+                          --events printer-added,printer-deleted \
+                          --recipient mynotifier \
+                          --duration 0
+                          
+            $ pksubscribe --username root \              
+                          --password HacKMe \
+                          --delete 34 58 98
+                          
+    * samplenotifier : can handle printer-added and printer-deleted
+      notifications and automatically create or remove printers
+      from PyKota's database (just adapt the code for other needs).
+      
+      samplenotifier is present in the notifiers/ directory, but
+      won't be installed automatically.
+
+  In the future more command line tools will be included.
+  
+=======================================================================
+
+Please email bug reports, enhancements or comments to : alet@librelogiciel.com

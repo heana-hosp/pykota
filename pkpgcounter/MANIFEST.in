@@ -1,0 +1,3 @@
+include README FAQ COPYING BUGS TODO NEWS CREDITS MANIFEST.in clean.sh bin/pkpgcounter
+recursive-include man README *.sh *.1
+recursive-include tests README *.ps.gz *.sh *.py colors.pdf

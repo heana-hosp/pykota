@@ -1,0 +1,345 @@
+# $Id: NEWS 369 2007-12-09 13:17:17Z jerome $
+
+pkpgcounter : a generic Page Description Language parser
+
+(c) 2003, 2004, 2005, 2006, 2007 Jerome Alet <alet@librelogiciel.com>
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+=============================================================================
+
+pkpgcounter News :
+
+  * 3.50 :
+  
+    - Added support for Canon BJ/BJC documents in page counting mode.
+    
+    - Added support for Structured Fax documents in page counting mode.
+    
+    - Added support for ASCII PNM (Netpbm) documents in page counting mode.
+    
+    - Fixed a problem with the parsing of SPL1 (GDI) documents : all such
+      documents should now be correctly parsed.
+    
+    - Improved the PCL3/4/5 parser.
+    
+  * 3.40 :
+  
+    - Fixed a major bug in the detection of OpenDocument (ISO/IEC DIS 26300)
+      files.
+      
+    - Added support for page counting in Microsoft Word (c) (tm) (r) (etc...)
+      documents.
+      
+    - Added support for ink accounting in Microsoft Word (c) (tm) (r) (etc...)
+      and OpenDocument (ISO/IEC DIS 26300) documents.
+      
+    - Now automatically detects missing executable dependencies at runtime.  
+      
+  * 3.30 :
+  
+    - Added support for all file formats supported by the Python Imaging
+      Library.
+    
+    - Added a minimal parser for Hewlett-Packard LIDIL documents, as 
+      produced by the hpijs driver.
+      
+    - Improved general reliability.
+    
+    - Improved detection of PCL3/4/5 jobs.
+    
+    - Major code cleaning.  
+      
+  * 3.20 :
+   
+    - Added a minimal parser for Brother HBP documents.
+    
+    - Added support for Canon ImageRunner commands to the PCLXL parser,
+      much like it was already done for the PCL3/4/5 parser.
+      
+  * 3.10 :
+  
+    - Added a minimal parser for ESC/PAGES03 style documents.
+    
+    - Fixed another problem in the code handling the output of Canon's
+      ImageRunner printer drivers.
+    
+  * 3.00 :
+  
+    - Fixed a problem in the code handling the output of Canon's ImageRunner
+      printer drivers.
+      
+    - Licensing terms changed to GNU GPL v3.0 or higher.  
+    
+  * 2.18 :
+  
+    - Fixed an incompatibility with Python v2.5
+    
+  * 2.17 : 
+  
+    - Fixed problems in the handling of PJL number of copies (COPIES= and QTY=)
+      which caused the number of copies for each page to be squared.
+    
+  * 2.16 : 
+  
+    - Fixed a problem in the PCL3/4/5 parser to accomodate line based
+      report generators which expect the printer to skip to next page
+      based on lines per page instead of sending a specific command.
+      
+  * 2.15 :
+   
+    - Fixed a regexp in the PDF parser which caused some files to be
+      incorrectly accounted for.
+    
+    - Improved the detection of the number of copies in PostScript documents.
+    
+  * 2.14 :
+  
+    - Fixed a problem with some PS drivers which don't output %%Page:
+      comments.
+      
+  * 2.13 : 
+   
+    - Nowrecognizes the GC colorspace if you only want to differentiate
+      grayscale pages from coloured pages. In this colorspace, the
+      percents are always "G : 100.0   C : 0.0" or "G : 0.0   C : 100.0"
+      respectively for a grayscale page and a coloured page.
+  
+  * 2.12 :
+  
+    - Fixed a problem with the PostScript parser.
+    
+  * 2.11 :
+  
+    - Improved overall robustness in ink accounting mode.
+    
+  * 2.10 :
+  
+    - Added a plain text parser, with support for both page counting and
+      ink coverage.
+    
+    - Added a minimal SPL1 parser.
+    
+    - Fixed a problem in the PCLXL parser related to Kyocera printer drivers.
+    
+  * 2.00 :
+  
+    - The PCL3/4/5 parser was rewritten from scratch and is now
+      table driven.
+      
+    - Improved the PostScript parser.
+    
+  * 1.85 :
+  
+    - Added support for Samsung QPDL (aka SPL2) file format in page
+      counting mode, thanks to the work done by Aurélien Croc on
+      reverse engineering the file format.
+      
+  * 1.85alpha :
+  
+    - Added test document and program to generate the test document
+      to check the functionning of the ink coverage computation algorithm.
+      
+  * 1.84 :
+  
+    - Computation of ink coverage now works and is documented.
+      The supported file formats are : PS, PDF, PCLXL, PCL3/4/5,
+      DVI and TIFF.
+      
+  * 1.84alpha :
+  
+    - Added initial support for the computation of ink coverage.
+      See python analyzer.py --help for details. The same command
+      line options work for pkpgcounter, although it's not
+      documented yet.
+    
+  * 1.83 :
+  
+    - Fixed a famously known 'brown paper bag' issue with file type autodetection. 
+    
+  * 1.82 :
+  
+    - Fixed PCL3/4/5 parser to detect recent Xerox drivers' output. 
+    
+  * 1.81 :
+  
+    - Improved the gs+Acrobat Reader fix done in 1.78.
+    
+  * 1.80 :
+  
+    - Added support for Zenographics ZjStream input format.
+    
+  * 1.79 :
+  
+    - Fixed a small problem in PostScript parser with dvips output.
+    
+  * 1.78 :
+  
+    - Launches gs less often when printing is done from Acrobat
+      Reader.
+    
+  * 1.77 : 
+  
+    - Fixed some problems with the code introduced in 1.76.
+    
+    - Improved PCLXL parser's speed by almost 10%.
+    
+  * 1.76 :
+  
+    - Improved the PCLXL parser wrt undocumented tags.
+    
+    - Preliminary support for Kyocera Prescribe commands.
+    
+  * 1.75 :
+  
+    - Added preliminary support for Canon ImageRunner's "LIPS" or "UFR"
+      (I don't know which) Page Description Language. 
+      
+  * 1.74 :
+  
+    - Fixed a problem in the retrieval of named media sizes in PCLXL.
+    
+    - Changed copyright years.
+    
+  * 1.73 :
+  
+    - Fixed duplex detection code in PCL3/4/5 parser.
+    
+    - Fixed PCLXL detection code.
+    
+    - Fixed retrieval of custom media types' names in PCLXL.
+    
+    - Added inactive code to compute ink coverage ala PrintBill.
+    
+  * 1.72 :
+  
+    - Improved heuristic to detect when ghostscript has to be used to do
+      the parsing.
+   
+  * 1.71 :
+  
+    - Now uses ghostscript as the parser when the PS stream was created by a
+      particular MSWindows driver.
+    
+    - Only complains about Psyco missing at install time, and stays
+      quiet when running without Psyco.
+      
+  * 1.70 :
+  
+    - Fixed some PJL escaping issue in the PCLXL and PCL3/4/5 parsers.
+    
+  * 1.69 :
+  
+    - Improved PCL3/4/5 parser.
+    
+    - Improved PCLXL parser wrt PJL stuff.
+    
+  * 1.68 :
+  
+    - Improved PostScript parser.
+    
+  * 1.67 :
+  
+    - Improved PostScript parser.
+    
+    - Improved PCL3/4/5 parser.
+    
+  * 1.66 : 
+  
+    - Improved PCLXL parser.
+    
+    - Improved PCL3/4/5 parser.
+    
+  * 1.65 :
+    
+    - Improved PostScript parser.
+    
+    - Improved PCL3/4/5 parser.
+    
+  * 1.64 :
+    
+    - Improved PCL3/4/5 parser.
+    
+  * 1.63 :
+  
+    - Now handles PJL statements to extract number of copies, duplex mode
+      and paper size in the PCLXL and PCL3/4/5 parsers.
+    
+  * 1.62 :
+  
+    - Better handling of the number of copies in the PCLXL parser.
+    
+    - Better handling of the number of copies in the PCL3/4/5 parser.
+      
+  * 1.61 :
+  
+    - Improved PCL3/4/5 parser.
+    
+    - Better handling of the number of copies in the PostScript parser.
+      Now the number can be different from page to page.
+    
+  * 1.60 : 
+  
+    - Improved PCLXL parser.
+    
+  * 1.59 :
+    
+    - Major rewrite of the PDF parser to correctly handle all line endings.
+      
+  * 1.58 :
+  
+    - Fix for PDF files which contain several versions of the same PDF object.
+    
+    - Doesn't break when python-psyco is not available.
+    
+  * 1.57 : 
+  
+    - Fixed a recently introduced bug in binary postscript handling code.  
+    
+  * 1.56 :
+  
+    - Renamed the library from pdlanalyzer into pkpgpdls to avoid problems
+      when the code will be integrated back into PyKota.
+      
+  * 1.55 : 
+  
+    - Added support for OpenOffice.org Writer and Impress documents.
+    
+  * 1.54 :
+   
+    - Added online documentation and a manual page.
+    
+  * 1.53 : 
+  
+    - Moved code around to improve maintainability.
+    
+  * 1.52 : 
+  
+    - Added support for the TIFF format.
+    
+  * 1.51 : 
+  
+    - Added support for the DVI format.
+    
+  * 1.50 :
+  
+    - Major code changes to modularize. The pkpgcounter command line tool
+      is now just an almost empty skeleton, which uses the pdlanalyzer
+      library.
+      
+    - Several improvements to the parsing code.  
+      
+  * 1.00 :
+
+    - First release.
+
