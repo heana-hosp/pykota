@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pykota"
+version = "1.0.0"  # Defina a versão do seu projeto
+description = "PyKota is a printing quota and accounting software for CUPS and LPRng."  # Substitua pela descrição real
+license = {text = "GNU GPL"}
+authors = [
+    {name = "Jerome Alet", email = "alet@librelogiciel.com"}
+]
+readme = "README"
+#requires-python = "3.12"
+
+[project.urls]
+homepage = "http://www.pykota.com"
+
+[tool.setuptools]
+packages = ["pykota", "pykota.storages", "pykota.loggers", "pykota.accounters", "pykota.reporters"]
+package-dir = {"" = "src"}
+script-files = [
+    "bin/pknotify", "bin/pkusers", "bin/pkinvoice", "bin/pksetup", 
+    "bin/pkrefund", "bin/pkturnkey", "bin/pkbcodes", "bin/pkmail", 
+    "bin/pkbanner", "bin/autopykota", "bin/dumpykota", 
+    "bin/pykosd", "bin/edpykota", "bin/repykota", 
+    "bin/warnpykota", "bin/pykotme", "bin/pkprinters"
+]
+
+[tool.setuptools.data-files]
+"share/locale" = ["po/*/*.mo"]
+"share/doc/pykota" = [
+    "README", "FAQ", "SECURITY", "COPYING", "LICENSE", "CREDITS", "TODO", 
+    "docs/*.pdf", "docs/*.sx?", "docs/pykota/*.html", 
+    "openoffice/*.sx?", "openoffice/*.png", "openoffice/README", 
+    "qa-assistant/*.xml", "qa-assistant/README"
+]
+"share/man/man1" = ["man/*.1"]
+"share/pykota" = [
+    "checkdeps.py", "bin/cupspykota", "bin/waitprinter.sh", 
+    "bin/papwaitprinter.sh", "bin/mailandpopup.sh", 
+    "untested/pjl/pagecount.pjl", "untested/pjl/status.pjl", 
+    "untested/netatalk/netatalk.sh", "untested/netatalk/pagecount.ps"
+]
+"share/pykota/conf" = ["conf/README", "conf/pykota.conf.sample", "conf/pykotadmin.conf.sample"]
+"share/pykota/cgi-bin" = ["cgi-bin/README", "cgi-bin/printquota.cgi", "cgi-bin/dumpykota.cgi", "cgi-bin/pykotme.cgi"]
+"share/pykota/logos" = ["logos/*.jpeg", "logos/*.png", "logos/*.xcf"]
+"share/pykota/stylesheets" = ["stylesheets/*.css", "stylesheets/README"]
+"share/pykota/postgresql" = ["initscripts/postgresql/README.postgresql", "initscripts/postgresql/pykota-postgresql.sql"]
+"share/pykota/ldap" = ["initscripts/ldap/README.ldap", "initscripts/ldap/pykota.schema", "initscripts/ldap/pykota-sample.ldif"]
+"share/pykota/mysql" = ["initscripts/mysql/README.mysql", "initscripts/mysql/pykota-mysql.sql"]
+"share/pykota/sqlite" = ["initscripts/sqlite/README.sqlite", "initscripts/sqlite/pykota-sqlite.sql"]
+
+#[tool.setuptools.cmdclass]
+#install_data = "installData.MyInstallData"
+
+[tool.setuptools.dynamic]
+version = {attr = "pykota.version.__version__"}
+description = {file = "README"}

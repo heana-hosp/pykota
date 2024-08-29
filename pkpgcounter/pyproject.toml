@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=42", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pkpgcounter"
+version = "4.0.0"
+description = "pkpgcounter: a generic Page Description Languages parser."
+authors = [{ name = "Jerome Alet", email = "alet@librelogiciel.com" }]
+license = { text = "GNU GPL" }
+readme = "README"
+requires-python = ">=3.12"
+keywords = ["Python Imaging Library", "PIL", "Pillow"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License (GPL)",
+    "Operating System :: OS Independent",
+]
+urls = { "Homepage" = "http://www.pykota.com/software/pkpgcounter/" }
+dependencies = [
+    'setuptools>=61',
+    'pillow>=10.2.0',
+]
+
+[tool.setuptools]
+packages = ["pkpgpdls"]
+package-dir = {"" = "src"}
+script-files = ["bin/pkpgcounter"]
+
+[tool.setuptools.data-files]
+"share/locale/{lang}/LC_MESSAGES" = ["po/{lang}/*.mo"]
+"share/doc/pkpgcounter" = ["README", "COPYING", "BUGS", "CREDITS", "AUTHORS", "TODO"]
+"share/man/man1" = ["man/*.1"]
+
+[global]
+break-system-packages = true

@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pkipplib"
+version = "1.0.0"  # Será substituído pelo valor da versão extraída
+description = "IPP and CUPS support for Python"  # Será substituído pelo valor da descrição extraída
+authors = [
+    {name = "Jerome Alet", email = "alet@librelogiciel.com"},
+]
+license = {text = "GNU GPL"}
+urls = {homepage = "http://www.pykota.com/software/pkipplib"}
+
+[project.scripts]
+pksubscribe = "pkipplib.bin.pksubscribe"

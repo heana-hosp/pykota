@@ -100,7 +100,6 @@ class Accounter(AccounterBase):
 
         try:
             answer, stderr = child.communicate()
-            self.filter.printInfo(f"resp ==> {answer} erro {stderr} data {self.filter.DataFile}")
         except (IOError, OSError) as msg:
             msg = f"{self.arguments} : {msg}"
             self.filter.printInfo(f"Unable to compute job size with accounter {msg}")
