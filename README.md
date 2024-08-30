@@ -1,24 +1,23 @@
-# pykota
+# Pykota
 Git Repository to Pykota
 
-This repository was created to update the pykota project and adapt it to Python version 3.10 or higher.
+This repository was created to update the pykota project and adapt it to Python version 3.12(upgraded) or higher.
 
 ### Features
- - Updated the version to work with python version 3.10 or higher;
+ - Updated the version to work with python version 3.12(upgraded) or higher;
 
 ### Considerations
  - This version was tested only on Postgres Database;
  - We adapt in order to meet personal demands;
- - Only the pkipplib, pkpgcounter and pykota projects have been migrated to version 3.10 or higher;
+ - Only the pkipplib, pkpgcounter and pykota projects have been migrated to version 3.12(updated) or higher;
  - The tea4cups project have not migrated at the moment and we don't know if we will update. The pykotaicon project will be updated soon.
 
 
 
 
+### Simple tutorial - Instalation Pykota with Ubuntu Server 24.04 LTS and PostgreSQL(Upgraded)
 
-### Simple tutorial - Instalation Pykota with Ubuntu Server 23.04 and PostgreSQL
-
-#### With fresh install Ubuntu Server 23.04 and upgrade all packages ... and get power of root.. let's go.
+#### With fresh install Ubuntu Server 24.04 LTS and upgrade all packages ... and get power of root.. let's go.
 
 
 Clone repository:
@@ -32,7 +31,7 @@ Clone repository:
 
 Install CUPS Service:
 
-`# apt install cups `
+`# apt install cups`
 
 Easy way to get exception on apparmor for CUPS:
 
@@ -42,7 +41,7 @@ Easy way to get exception on apparmor for CUPS:
 
 `/etc/init.d/apparmor restart`
 
-Check version of python - must be equal to or higher than 3.10:
+Check version of python - must be equal to or higher than 3.12:
 
 `# python3 --version`
 
@@ -52,26 +51,29 @@ Install PostgreSQL:
 
 Install Python libs needed to this version:
 
-`# apt install python3-pil python3-pypdf2 libpq-dev python3.11-dev python3-psycopg2 python3-reportlab`
+`# apt install python3-pil python3-pypdf2 libpq-dev python3.12-dev python3-psycopg2 python3-reportlab python3-build python3-venv python3-pip`
 
 
 #### Build and Install Pykota libs, tools, configuration and database.
+#### Obs: This build process has been updated since the last version. The name of the package built in the dist directory may vary depending on the parameters defined in pyproject.toml
+
+#### The 
 
 1 - Install pkipplib:
 
 `# cd /opt/pykota/pkipplib/`
 
-`# python3 setup.py build`
+`# python3 -m build`
 
-`# python3 setup.py install`
+`# pip3 install dist/pkipplib-1.0.0-py3-none-any.whl --break-system-packages`
 
 2 - Install pkpgcounter:
 
 `# cd /opt/pykota/pkpgcounter/`
 
-`# python3 setup.py build`
+`# python3 -m build`
 
-`# python3 setup.py install`
+`# pip3 install dist/pkpgcounter-4.0.0-py3-none-any.whl  --break-system-packages`
 
 3 - Install pykota:
 
@@ -94,9 +96,9 @@ Checking for Python-pkpgcounter availability : OK
 
 Build and Install:
 
-`# python3 setup.py build`
+`# python3 -m build`
 
-`# python3 setup.py install`
+`# pip3 install dist/pykota-1.0.0-py3-none-any.whl  --break-system-packages`
 
 Generate database:
 
@@ -110,8 +112,6 @@ Copy backend from pykota to cups libs and give permissions:
 `# cp /opt/pykota/pykota/bin/cupspykota /usr/lib/cups/backend/`
 
 `# chmod -R 755 /usr/lib/cups/backend/cupspykota`
-
-`# chmod +x /usr/lib/cups/backend/cupspykota`
 
 Restart Cups:
 
@@ -276,7 +276,7 @@ Edit the file pykoticon.vbs
 
 Change the line `retcode = Wshshell.run ("%comspec% /C pykoticon.exe --port 7654 nordine.ateur", 0, FALSE)`
 
-Assign the IP of the server you just installed: `retcode = Wshshell.run ("%comspec% /C pykoticon.exe --port 7654 IP_SERVER", 0, FALSE)`
+Assign the IP of the server you just installed: `retcode = Wshshell.run ("%comspec% /C pykoticon.exe --port 7654 IP_FROM_PYKOTA_SERVER", 0, FALSE)`
 
 Save and run the application pykoticon.exe. The icon will appear in the tray icon. Now just send a print for testing.
 
