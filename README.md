@@ -250,10 +250,11 @@ Configure the driver for your print. Recomended the postscripts/cupsfilter drive
 
 #### Add user and printer on pykota
 
-Add printer(remember, case sensitive: same name of printer installed on cups). Ex. name is TEST:
+Add printer(remember, case sensitive: same name of printer installed on cups) e add the price per page in this printer. Ex. name is TEST:
 ```bash
-pkprinters --add TEST
+pkprinters --charge 1.0 --add TEST
 ```
+
 Add user and set balance. In this case, the user is the same user who is logged in to the Windows station. To find out who the user is. just run (echo %USERNAME%) in cmd. In this example we will use **testuser**:
 ```bash
 pkusers --add usertest
