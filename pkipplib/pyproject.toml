@@ -12,5 +12,5 @@ authors = [
 license = {text = "GNU GPL"}
 urls = {homepage = "http://www.pykota.com/software/pkipplib"}
 
-[project.scripts]
-pksubscribe = "pkipplib.bin.pksubscribe"
+[tool.setuptools]
+script-files = ["bin/pksubscribe"]
