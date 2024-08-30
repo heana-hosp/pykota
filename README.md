@@ -62,8 +62,6 @@ apt install python3-pil python3-pypdf2 libpq-dev python3.12-dev python3-psycopg2
 #### Build and Install Pykota libs, tools, configuration and database.
 #### Obs: This build process has been updated since the last version. The name of the package built in the dist directory may vary depending on the parameters defined in pyproject.toml
 
-#### The 
-
 1 - Install pkipplib:
 ```bash
 cd /opt/pykota/pkipplib/
@@ -98,12 +96,14 @@ python3 checkdeps.py
 
 *Check the output if some libs were detected - in this case, the library for postgres and pkpgcounter(in previous step) was correctly installed.*
 
-
->Checking for Python-Psycopg availability : OK<BR>
->...<BR>
->...<BR>
->Checking for Python-pkpgcounter availability : OK<BR>
->...<BR>
+```code
+...
+Checking for Python-Psycopg availability : OK
+...
+...
+Checking for Python-pkpgcounter availability : OK
+...
+```
 
 Build and Install:
 ```batch
@@ -171,14 +171,13 @@ which pknotify
 
 Change lines or comment - pknotify will return to client a prompt message(pykotaicon on client):
 
-```code
+```
 ...
 accounter : software(/usr/local/bin/pkpgcounter)
 ...
 preaccounter: software(/usr/local/bin/pkpgcounter)
 ...
 askconfirmation : /usr/local/bin/pknotify --destination $PYKOTAJOBORIGINATINGHOSTNAME:7654 --timeout 7 --confirm "Hello $PYKOTAUSERNAME.\nThe job  $PYKOTAJOBID will be send to $PYKOTAPRINTERNAME and cost $PYKOTAPRECOMPUTEDJOBSIZE page(s)\nYour balance is $PYKOTABALANCE\n\nDo you really want to print?"
-
 ```
 
 #### Configure CUPS and add printer.
@@ -193,7 +192,7 @@ On `<Location />` and `<Location /admin>` add **Allow IP_STATION_WILL_CONFIGURE_
 
 Example: If I want to access the server remotely from IP 100.100.100.133 - follow the configuration section of the file:
 
-```code
+```
 ...
 ...
 <Location />
