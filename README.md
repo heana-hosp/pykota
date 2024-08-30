@@ -15,7 +15,7 @@ This repository was created to update the pykota project and adapt it to Python 
 
 
 
-### Simple tutorial - Instalation Pykota with Ubuntu Server 24.04 LTS and PostgreSQL(Upgraded)
+### Simple tutorial - Installation Pykota with Ubuntu Server 24.04 LTS and PostgreSQL(Upgraded)
 
 #### With fresh install Ubuntu Server 24.04 LTS and upgrade all packages ... and get power of root.. let's go.
 
