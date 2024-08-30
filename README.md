@@ -194,7 +194,6 @@ Example: If I want to access the server remotely from IP 100.100.100.133 - follo
 
 
 >...<BR>
->...<BR>
 ><Location /><BR>
   >Order allow,deny<BR>
   >Allow 100.100.100.133<BR>
@@ -229,7 +228,6 @@ Example: If I want to access the server remotely from IP 100.100.100.133 - follo
 >  SubscriptionPrivateAccess default<BR>
 >  SubscriptionPrivateValues default<BR>
 >...<BR>
->... <BR>
 
 
 Add lpadmin group
