@@ -1,5 +1,7 @@
 # Pykota
 Git Repository to Pykota
+> Status do Projeto: Concluido :heavy_check_mark:
+<!-- > Status do Projeto: Em desenvolvimento :warning: -->
 
 This repository was created to update the pykota project and adapt it to Python version 3.12(upgraded) or higher.
 
@@ -96,7 +98,7 @@ python3 checkdeps.py
 
 *Check the output if some libs were detected - in this case, the library for postgres and pkpgcounter(in previous step) was correctly installed.*
  
->...<NR>
+>...<BR>
 >Checking for Python-Psycopg availability : OK<BR>
 >...<BR>
 >...<BR>
@@ -159,24 +161,24 @@ Adjust the correct path to pkpgcounter and pknotify in the /etc/pykota/pykota.co
 Check the path:
 ```bash
 which pkpgcounter 
-# /usr/local/bin/pkpgcounter
 ```
+> /usr/local/bin/pkpgcounter <BR>
 
 ```bash
 which pknotify
-# /usr/local/bin/pknotify
 ```
+> /usr/local/bin/pknotify <BR>
 
 Change lines or comment - pknotify will return to client a prompt message(pykotaicon on client):
 
-```
-...
-accounter : software(/usr/local/bin/pkpgcounter)
-...
-preaccounter: software(/usr/local/bin/pkpgcounter)
-...
-askconfirmation : /usr/local/bin/pknotify --destination $PYKOTAJOBORIGINATINGHOSTNAME:7654 --timeout 7 --confirm "Hello $PYKOTAUSERNAME.\nThe job  $PYKOTAJOBID will be send to $PYKOTAPRINTERNAME and cost $PYKOTAPRECOMPUTEDJOBSIZE page(s)\nYour balance is $PYKOTABALANCE\n\nDo you really want to print?"
-```
+
+>...<BR>
+>accounter : software(/usr/local/bin/pkpgcounter)<BR>
+>...<BR>
+>preaccounter: software(/usr/local/bin/pkpgcounter)<BR>
+>...<BR>
+>askconfirmation : /usr/local/bin/pknotify --destination $PYKOTAJOBORIGINATINGHOSTNAME:7654 --timeout 7 --confirm "Hello $PYKOTAUSERNAME.\nThe job  $PYKOTAJOBID will be send to $PYKOTAPRINTERNAME and cost $PYKOTAPRECOMPUTEDJOBSIZE page(s)\nYour balance is $PYKOTABALANCE\n\nDo you really want to print?"<BR>
+><BR>
 
 #### Configure CUPS and add printer.
 
@@ -190,44 +192,45 @@ On `<Location />` and `<Location /admin>` add **Allow IP_STATION_WILL_CONFIGURE_
 
 Example: If I want to access the server remotely from IP 100.100.100.133 - follow the configuration section of the file:
 
-```
-...
-...
-<Location />
-  Order allow,deny
-  Allow 100.100.100.133
-</Location>
 
-# Restrict access to the admin pages...
-<Location /admin>
-  Order allow,deny
-  Allow 100.100.100.133
-</Location>
+>...<BR>
+>...<BR>
+><Location /><BR>
+  >Order allow,deny<BR>
+  >Allow 100.100.100.133<BR>
+></Location><BR>
+><BR>
+>\# Restrict access to the admin pages...<BR>
+><Location /admin><BR>
+  >Order allow,deny<BR>
+  >Allow 100.100.100.133<BR>
+></Location><BR>
+><BR>
+>\# Restrict access to configuration files...<BR>
+><Location /admin/conf><BR>
+  >AuthType Default<BR>
+  >Require user @SYSTEM<BR>
+  >Order allow,deny<BR>
+></Location><BR>
+><BR>
+>\# Restrict access to log files...<BR>
+><Location /admin/log><BR>
+  >AuthType Default<BR>
+  >Require user @SYSTEM<BR>
+  >Order allow,deny<BR>
+></Location><BR>
+><BR>
+><BR>
+>\# Set the default printer/job policies...<BR>
+><Policy default><BR>
+>  \# Job/subscription privacy...<BR>
+>  JobPrivateAccess all<BR>
+>  JobPrivateValues none<BR>
+>  SubscriptionPrivateAccess default<BR>
+>  SubscriptionPrivateValues default<BR>
+>...<BR>
+>... <BR>
 
-# Restrict access to configuration files...
-<Location /admin/conf>
-  AuthType Default
-  Require user @SYSTEM
-  Order allow,deny
-</Location>
-
-# Restrict access to log files...
-<Location /admin/log>
-  AuthType Default
-  Require user @SYSTEM
-  Order allow,deny
-</Location>
-
-# Set the default printer/job policies...
-<Policy default>
-  # Job/subscription privacy...
-  JobPrivateAccess all
-  JobPrivateValues none
-  SubscriptionPrivateAccess default
-  SubscriptionPrivateValues default
-...
-... 
-```
 
 Add lpadmin group
 ```bash
