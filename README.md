@@ -21,38 +21,43 @@ This repository was created to update the pykota project and adapt it to Python 
 
 
 Clone repository:
-
-`# cd /opt`
-
-`# git clone https://github.com/heana-hosp/pykota.git`
-
+```bash
+cd /opt
+```
+```bash
+git clone https://github.com/heana-hosp/pykota.git
+```
 
 *Get the power of root and proceed to install - every command with permission*
 
 Install CUPS Service:
-
-`# apt install cups`
-
+```bash
+apt install cups
+```
 Easy way to get exception on apparmor for CUPS:
-
-`apt install apparmor-utils`
-
-`aa-complain cupsd`
-
-`/etc/init.d/apparmor restart`
+```bash
+apt install apparmor-utils
+```
+```bash
+aa-complain cupsd
+```
+```bash
+/etc/init.d/apparmor restart
+```
 
 Check version of python - must be equal to or higher than 3.12:
-
-`# python3 --version`
-
+```bash
+python3 --version
+```
 Install PostgreSQL:
-
-`apt install postgresql postgresql-contrib`
+```bash
+apt install postgresql postgresql-contrib
+```
 
 Install Python libs needed to this version:
-
-`# apt install python3-pil python3-pypdf2 libpq-dev python3.12-dev python3-psycopg2 python3-reportlab python3-build python3-venv python3-pip`
-
+```bash
+apt install python3-pil python3-pypdf2 libpq-dev python3.12-dev python3-psycopg2 python3-reportlab python3-build python3-venv python3-pip
+```
 
 #### Build and Install Pykota libs, tools, configuration and database.
 #### Obs: This build process has been updated since the last version. The name of the package built in the dist directory may vary depending on the parameters defined in pyproject.toml
@@ -60,32 +65,40 @@ Install Python libs needed to this version:
 #### The 
 
 1 - Install pkipplib:
-
-`# cd /opt/pykota/pkipplib/`
-
-`# python3 -m build`
-
-`# pip3 install dist/pkipplib-1.0.0-py3-none-any.whl --break-system-packages`
+```bash
+cd /opt/pykota/pkipplib/
+```
+```bash
+python3 -m build
+```
+```bash
+pip3 install dist/pkipplib-1.0.0-py3-none-any.whl --break-system-packages
+```
 
 2 - Install pkpgcounter:
-
-`# cd /opt/pykota/pkpgcounter/`
-
-`# python3 -m build`
-
-`# pip3 install dist/pkpgcounter-4.0.0-py3-none-any.whl  --break-system-packages`
+```bash
+cd /opt/pykota/pkpgcounter/
+```
+```bash
+python3 -m build
+```
+```bash
+pip3 install dist/pkpgcounter-4.0.0-py3-none-any.whl  --break-system-packages
+```
 
 3 - Install pykota:
 
 Check dependencies before:
-
-`# cd /opt/pykota/pykota/`
-
-`# python3 checkdeps.py`
+```bash
+cd /opt/pykota/pykota/
+```
+```bash
+python3 checkdeps.py
+```
 
 *Check the output if some libs were detected - in this case, the library for postgres and pkpgcounter(in previous step) was correctly installed.*
 
-```batch
+```code
 ...
 Checking for Python-Psycopg availability : OK
 ...
@@ -95,60 +108,72 @@ Checking for Python-pkpgcounter availability : OK
 ```
 
 Build and Install:
+```batch
+python3 -m build
+```
 
-`# python3 -m build`
-
-`# pip3 install dist/pykota-1.0.0-py3-none-any.whl  --break-system-packages`
-
+```batch
+pip3 install dist/pykota-1.0.0-py3-none-any.whl  --break-system-packages
+```
 Generate database:
-
-`# su - postgres -c "psql -f  /opt/pykota/pykota/initscripts/postgresql/pykota-postgresql.sql template1"`
-
+```batch
+su - postgres -c "psql -f  /opt/pykota/pykota/initscripts/postgresql/pykota-postgresql.sql template1"`
+```
 *By default, the database passwords are already defined for the pykotauser and pykotaadmin users(after generate script). If you need to change the password, change it at the database and don't forget to update passwords on files pykota.conf and pykotadmin.conf on directory /etc/pykota (instructions ahead).*
 
 
 Copy backend from pykota to cups libs and give permissions:
-
-`# cp /opt/pykota/pykota/bin/cupspykota /usr/lib/cups/backend/`
-
-`# chmod -R 755 /usr/lib/cups/backend/cupspykota`
-
+```batch
+cp /opt/pykota/pykota/bin/cupspykota /usr/lib/cups/backend/
+```
+```batch
+chmod -R 755 /usr/lib/cups/backend/cupspykota
+```
 Restart Cups:
-
-`# systemctl restart cups`
-
+```batch
+systemctl restart cups
+```
 Create user pykota on system:
-
-`adduser --system --group --home /etc/pykota --gecos PyKota pykota`
-
+```batch
+adduser --system --group --home /etc/pykota --gecos PyKota pykota
+```
 Copy default configuration files and set permission:
-
-`cp /opt/pykota/pykota/conf/pykota.conf.sample /etc/pykota/pykota.conf`
-
-`cp /opt/pykota/pykota/conf/pykotadmin.conf.sample /etc/pykota/pykotadmin.conf`
-
-`chmod 755 /etc/pykota`
-
-`chmod 644 /etc/pykota/pykota.conf`
-
-`chmod 644 /etc/pykota/pykotadmin.conf`
-
-`chown pykota:pykota /etc/pykota/pykota.conf /etc/pykota/pykotadmin.conf`
+```batch
+cp /opt/pykota/pykota/conf/pykota.conf.sample /etc/pykota/pykota.conf
+```
+```batch
+cp /opt/pykota/pykota/conf/pykotadmin.conf.sample /etc/pykota/pykotadmin.conf
+```
+```batch
+chmod 755 /etc/pykota
+```
+```batch
+chmod 644 /etc/pykota/pykota.conf
+```
+```batch
+chmod 644 /etc/pykota/pykotadmin.conf
+```
+```batch
+chown pykota:pykota /etc/pykota/pykota.conf /etc/pykota/pykotadmin.conf
+```
 
 
 Adjust the correct path to pkpgcounter and pknotify in the /etc/pykota/pykota.conf file
 
 Check the path:
 ```bash
-# which pkpgcounter
-/usr/local/bin/pkpgcounter
-# which pknotify
-/usr/local/bin/pknotify
+which pkpgcounter 
+# /usr/local/bin/pkpgcounter
+```
+
+```bash
+which pknotify
+# /usr/local/bin/pknotify
 ```
 
 Change lines or comment - pknotify will return to client a prompt message(pykotaicon on client):
 
-```bash
+```code
 ...
 accounter : software(/usr/local/bin/pkpgcounter)
 ...
@@ -170,7 +195,7 @@ On `<Location />` and `<Location /admin>` add **Allow IP_STATION_WILL_CONFIGURE_
 
 Example: If I want to access the server remotely from IP 100.100.100.133 - follow the configuration section of the file:
 
-```bash
+```code
 ...
 ...
 <Location />
@@ -210,13 +235,13 @@ Example: If I want to access the server remotely from IP 100.100.100.133 - follo
 ```
 
 Add lpadmin group
-
-`# usermod -a -G  lpadmin $USER`
-
+```bash
+usermod -a -G  lpadmin $USER
+```
 Restart CUPS
-
-`systemctl restart cups`
-
+```bash
+systemctl restart cups
+```
 Add printer on CUPS:
 
 In the browser(emember the IP assigned in the cups configuration file) access **IP_SERVER:631**
@@ -232,26 +257,28 @@ Configure the driver for your print. Recomended the postscripts/cupsfilter drive
 #### Add user and printer on pykota
 
 Add printer(remember, case sensitive: same name of printer installed on cups). Ex. name is TEST:
-
-`# pkprinters --add TEST`
-
+```bash
+pkprinters --add TEST
+```
 Add user and set balance. In this case, the user is the same user who is logged in to the Windows station. To find out who the user is. just run (echo %USERNAME%) in cmd. In this example we will use **testuser**:
-
-`# pkusers --add usertest`
+```bash
+pkusers --add usertest
+```
 
 Defining the balance type for the user and defining a balance. Pykota allows you to assign the balance and quota type. Next step, give 50 balance.
-
-`# pkusers --limitby balance usertest`
-
-`# pkusers --balance +50.0 --comment "add more 50!" usertest`
-
+```bash
+pkusers --limitby balance usertest
+```
+```bash
+pkusers --balance +50.0 --comment "add more 50!" usertest
+```
 Link user: testuser to printer: TEST
-
-`# edpykota --add usertest`
-
-`# edpykota --printer TEST -S 50 -H 50 usertest`
-
-
+```bash
+edpykota --add usertest
+```
+```bash
+edpykota --printer TEST -S 50 -H 50 usertest
+```
 #### Add printer in Windows
 
 win + r (Execute) -> control printers
