@@ -98,14 +98,12 @@ python3 checkdeps.py
 
 *Check the output if some libs were detected - in this case, the library for postgres and pkpgcounter(in previous step) was correctly installed.*
 
-```code
-...
-Checking for Python-Psycopg availability : OK
-...
-...
-Checking for Python-pkpgcounter availability : OK
-...
-```
+
+>Checking for Python-Psycopg availability : OK<BR>
+>...<BR>
+>...<BR>
+>Checking for Python-pkpgcounter availability : OK<BR>
+>...<BR>
 
 Build and Install:
 ```batch
