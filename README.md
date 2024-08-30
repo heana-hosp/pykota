@@ -89,7 +89,7 @@ pip3 install dist/pkpgcounter-4.0.0-py3-none-any.whl  --break-system-packages
 3 - Install pykota:
 
 Check dependencies before:
-```http
+```bash
 cd /opt/pykota/pykota/
 ```
 ```bash
@@ -98,7 +98,7 @@ python3 checkdeps.py
 
 *Check the output if some libs were detected - in this case, the library for postgres and pkpgcounter(in previous step) was correctly installed.*
 
-```code
+```quote
 ...
 Checking for Python-Psycopg availability : OK
 ...
@@ -195,7 +195,7 @@ On `<Location />` and `<Location /admin>` add **Allow IP_STATION_WILL_CONFIGURE_
 
 Example: If I want to access the server remotely from IP 100.100.100.133 - follow the configuration section of the file:
 
-```http
+```quote
 ...
 ...
 <Location />
