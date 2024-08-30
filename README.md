@@ -250,7 +250,7 @@ Configure the driver for your print. Recomended the postscripts/cupsfilter drive
 
 #### Add user and printer on pykota
 
-Add printer(remember, case sensitive: same name of printer installed on cups) and add the price per page in this printer(charge). Ex. name is TEST:
+Add printer(remember, case sensitive: same name of printer installed on cups) and add the price per page in this printer(--charge option). Ex. name is TEST:
 ```bash
 pkprinters --charge 1.0 --add TEST
 ```
