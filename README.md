@@ -89,7 +89,7 @@ pip3 install dist/pkpgcounter-4.0.0-py3-none-any.whl  --break-system-packages
 3 - Install pykota:
 
 Check dependencies before:
-```bash
+```http
 cd /opt/pykota/pykota/
 ```
 ```bash
@@ -195,7 +195,7 @@ On `<Location />` and `<Location /admin>` add **Allow IP_STATION_WILL_CONFIGURE_
 
 Example: If I want to access the server remotely from IP 100.100.100.133 - follow the configuration section of the file:
 
-```code
+```http
 ...
 ...
 <Location />
