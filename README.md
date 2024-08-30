@@ -1,7 +1,7 @@
 # Pykota
 Git Repository to Pykota
-> Status do Projeto: Concluido :heavy_check_mark:
-<!-- > Status do Projeto: Em desenvolvimento :warning: -->
+<!-- > Status do Projeto: Concluido :heavy_check_mark: -->
+> Status do Projeto: Em desenvolvimento :warning:
 
 This repository was created to update the pykota project and adapt it to Python version 3.12(upgraded) or higher.
 
